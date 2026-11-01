@@ -277,7 +277,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 
 /* ⑧ 층 띠 tk-layers — 위계(위가 가장 진함) */
 .tk-layers{display:flex;flex-direction:column;gap:4px;min-height:0;}
-.tk-layers>div{display:grid;grid-template-columns:var(--layer-label,130px) 1fr;flex:1 1 0;min-height:0;}
+.tk-layers>div{display:grid;grid-template-columns:var(--layer-label,130px) 1fr;flex:1 0 auto;}
 .tk-layers>div>b{display:flex;align-items:center;justify-content:center;text-align:center;padding:4px 6px;color:var(--on-fill);background:var(--green-mid);}
 .tk-layers>div:first-child>b{background:var(--tab-green);}
 .tk-layers>div:nth-child(n+3)>b{background:var(--flow-3);color:var(--tab-green);}
@@ -285,7 +285,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 
 /* ⑨ 역할 라벨 행 tk-roles — 배경·역량·실행 같은 논리 구조, 병렬 항목 */
 .tk-roles{display:flex;flex-direction:column;gap:4px;min-height:0;}
-.tk-roles>div{display:grid;grid-template-columns:var(--role-label,96px) 1fr;flex:1 1 auto;min-height:0;}
+.tk-roles>div{display:grid;grid-template-columns:var(--role-label,96px) 1fr;flex:1 0 auto;}
 .tk-roles>div>b{display:flex;align-items:center;justify-content:center;text-align:center;padding:4px 6px;background:var(--navy-tint);color:var(--tab-navy);}
 .tk-roles>div>.tk-list{padding:5px 9px;border:var(--hairline) solid var(--line-light);border-left:0;display:flex;flex-direction:column;justify-content:center;}
 .tk-roles.tk-green>div>b{background:var(--green-tint);color:var(--tab-green);}
@@ -326,8 +326,8 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-table td.tk-focus,.tk-table th.tk-focus{outline:2.25px solid var(--focus-box);outline-offset:-2px;}
 
 /* ⑬ 막대 tk-bars · 워터폴 tk-wf · 일정표 tk-gantt (tk-slides.js가 그림) */
-.tk-chart{position:relative;min-height:0;}
-.tk-chart svg{display:block;width:100%;height:100%;overflow:visible;}
+.tk-chart{position:relative;min-height:130px;flex:1 1 auto;}
+.tk-chart svg{position:absolute;left:0;top:0;display:block;width:100%;height:100%;overflow:visible;}
 .tk-chart text{font-family:var(--font-arial);}
 .tk-gantt{display:grid;min-height:0;font-size:calc(var(--fs) - 0.5px);}
 .tk-gantt>.tk-gh{font-weight:700;text-align:center;background:var(--table-head);border:var(--hairline) solid var(--line);padding:3px;}
@@ -445,3 +445,10 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 
 /* 결론 띠(근거 묶음 아래) */
 .tk-concl{flex:none;padding:6px 12px;background:var(--tab-green);color:var(--on-fill);font-weight:700;text-align:center;}
+
+/* v2.1 보정 */
+.tk-funnel.tk-solo>li{grid-template-columns:1fr;}
+.tk-funnel.tk-solo>li>b{flex-direction:row;gap:10px;}
+.tk-steps.tk-hdr{flex:none;margin-bottom:4px;}
+.tk-matrix>.tk-q.tk-blank{background:repeating-linear-gradient(135deg,#fafafa 0 6px,#f3f3f3 6px 7px);border:1px dashed var(--line-light);}
+.tk-matrix>.tk-q .tk-list{padding:0;background:none;border:0;}

@@ -264,6 +264,7 @@
     var steps = (box.getAttribute('data-steps') || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
     var rows = Array.prototype.slice.call(box.children);
     box.style.gridTemplateColumns = (box.getAttribute('data-label') || '96px') + ' repeat(' + steps.length + ', 1fr)';
+    box.style.gridTemplateRows = 'auto repeat(' + rows.length + ', 1fr)';
     box.innerHTML = '';
     box.appendChild(el('div', { class: 'tk-lh' }, ''));
     steps.forEach(function (s) { box.appendChild(el('div', { class: 'tk-lh' }, s)); });
@@ -301,6 +302,10 @@
       rg.selectNodeContents(b); var c = rg.getBoundingClientRect();
       var used = Math.min(1, (c.height || 0) / r.height);
       if (!b.closest('.tk-list') || b.classList.contains('tk-list')) empty += (1 - used) * r.width * r.height / area;
+    });
+    body.querySelectorAll('.tk-bars').forEach(function (c) {
+      var r = c.getBoundingClientRect(), k = c.querySelectorAll('rect').length || (JSON.parse(c.getAttribute('data-items') || '[]').length);
+      if (k && k < 5) empty += (r.width * r.height / area) * (5 - k) / 6;
     });
     body.querySelectorAll('.tk-list > li, td, .tk-sr > span, .tk-from, .tk-to').forEach(function (e) {
       var r = e.getBoundingClientRect(), lh = parseFloat(getComputedStyle(e).lineHeight) || 16;
