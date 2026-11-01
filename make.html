@@ -107,7 +107,8 @@
         return;
       }
       if (mode === 'sub') { cur.subs.push({ kind: /^☞/.test(txt) ? '실행' : '근거', text: txt }); return; }
-      if (mode === 'body') { (cur._raw = cur._raw || []).push({ txt: txt, ind: ind, gap: sub === 'gap' }); sub = null; }
+      if (mode === 'body') { (cur._raw = cur._raw || []).push({ txt: txt, ind: ind, gap: sub === 'gap' }); sub = null; return; }
+      if (cur !== deck.toc) (cur._misc = cur._misc || []).push({ txt: txt, ind: ind, line: line });
     });
     deck.slides.forEach(function (s) {
       var raw = s._raw || [];
@@ -123,9 +124,92 @@
       });
     });
     deck.slides.forEach(function (s) { s.cells = s.cells.filter(function (c) { return c.name || c.items.length; }); });
+    /* 틀을 벗어난 원고도 빈 장이 되지 않게: 남은 줄로 리드·칸을 만듦 */
+    deck.slides.forEach(function (s) {
+      if (s.cells.length || !s._misc || !s._misc.length) return;
+      var base = Math.min.apply(null, s._misc.map(function (r) { return r.ind; }));
+      s._misc.forEach(function (r) {
+        var m = /^([^:：]{2,24})\s*[:：]\s*(.*)$/.exec(r.txt), lc = s.cells[s.cells.length - 1];
+        if (m && /핵심\s*메시지|결론|메시지|요지/.test(m[1]) && m[2] && !s.lead) { s.lead = m[2].replace(/^✓\s*/, ''); return; }
+        if (m && /역할|배경|톤|도식|레이아웃|주제/.test(m[1])) return;
+        if (m && !m[2]) { s.cells.push({ name: m[1].replace(/^\d+\.\s*/, '').replace(/\s*[\[(].*$/, ''), items: [] }); return; }
+        if (r.ind <= base && m && m[2] && m[2].length > 40 && !lc) { s.cells.push({ name: m[1], items: [m[2]] }); return; }
+        if (!lc) { s.cells.push({ name: '', items: [] }); lc = s.cells[0]; }
+        lc.items.push(r.txt.replace(/^\d+\.\s*/, ''));
+      });
+      s.cells = s.cells.filter(function (c) { return c.items.length; });
+      if (!s.lead && s.cells.length === 1 && !s.cells[0].name) s.lead = '';
+    });
     return deck;
   }
 
+
+  /* 구조화 결과(# 제목 / **핵심 결론:** / ## 절 / > 관계: … · 도식 후보: … / ### ① 묶음 / 표 / **핵심 수치:**)를 바로 장표로 */
+  function isStruct(text) { return /^>\s*관계\s*[:：]/m.test(text) || /^\*\*핵심 결론[:：]?\*\*/m.test(text); }
+  function parseStruct(text) {
+    var deck = { cover: null, toc: { story: '', parts: [{ name: '구성', items: [] }] }, slides: [] }, cur = null, cell = null;
+    text.replace(/\r/g, '').split('\n').forEach(function (raw) {
+      var line = raw.replace(/\t/g, '    '), m;
+      if (!line.trim() || /^\s*---+\s*$/.test(line)) return;
+      if ((m = /^#\s+(.+)$/.exec(line))) { deck.cover = { title: clean(m[1]), sub: '' }; return; }
+      if ((m = /^\*\*핵심 결론[:：]?\*\*\s*[:：]?\s*(.+)$/.exec(line.trim()))) { deck.toc.story = clean(m[1]); return; }
+      if ((m = /^##\s+(?:\d+\.\s*)?(.+)$/.exec(line))) {
+        cur = { title: clean(m[1]), lead: '', subs: [], struct: '', dmain: '', daux: '', cells: [], key: '', band: '', note: '', imp: '', table: null, nums: '' };
+        deck.slides.push(cur); deck.toc.parts[0].items.push(cur.title); cell = null; return;
+      }
+      if (!cur) return;
+      if ((m = /^>\s*관계\s*[:：]\s*([^·|]+?)\s*(?:[·|]\s*도식\s*후보\s*[:：]\s*(.+))?$/.exec(line.trim()))) { cur.rel = m[1].trim(); cur.dmain = (m[2] || '').trim(); return; }
+      if ((m = /^>\s*리드\s*[:：]\s*(.+)$/.exec(line.trim()))) { cur.lead = clean(m[1]).replace(/^✓\s*/, ''); return; }
+      if ((m = /^>\s*(근거|실행)\s*[:：]\s*(.+)$/.exec(line.trim()))) { cur.subs.push({ kind: m[1], text: clean(m[2]) }); return; }
+      if ((m = /^###\s+(?:[①-⑳\d.)\s]+)?(.+)$/.exec(line))) { cell = { name: clean(m[1]), items: [] }; cur.cells.push(cell); return; }
+      if ((m = /^\*\*핵심 수치[:：]?\*\*\s*[:：]?\s*(.+)$/.exec(line.trim()))) { cur.nums = clean(m[1]); return; }
+      if (/^\s*\|/.test(line)) {
+        if (/^\s*\|[\s:\-|]+\|\s*$/.test(line)) return;
+        var row = line.trim().replace(/^\||\|$/g, '').split('|').map(function (x) { return clean(x); });
+        if (!cur.table) cur.table = { head: row, rows: [] }; else cur.table.rows.push(row);
+        return;
+      }
+      if ((m = /^\s*(?:[-*•]|\d+[.)])\s+(.*)$/.exec(line))) {
+        var x = clean(m[1]).replace(/\*\*/g, '').replace(/([^.])\.$/, '$1');
+        if (!cell) { cell = { name: '', items: [] }; cur.cells.push(cell); }
+        cell.items.push(x); return;
+      }
+      if (!cur.lead) cur.lead = clean(line.trim());
+    });
+    deck.slides.forEach(function (s, i) {
+      var concl = [];
+      s.cells.forEach(function (c) { c.items.forEach(function (x) { var m = /^결론\s*[:：]\s*(.+)$/.exec(x); if (m) concl.push(m[1].replace(/함$|임$/, '')); }); });
+      var dm = s.dmain || '', act = s.cells.length && s.cells.every(function (c) { return c.items.some(function (x) { return /^(첫\s*조치|담당)\s*[:：]/.test(x); }); });
+      if (act) {
+        var keys = ['근거', '첫 조치', '담당'];
+        s.dmain = '표 | 머리: 과제 / ' + keys.join(' / ');
+        s.cells = s.cells.map(function (c) { return { name: c.name, items: keys.map(function (k) { var it = c.items.find(function (x) { return x.replace(/\s/g, '').indexOf(k.replace(/\s/g, '') + ':') === 0 || x.replace(/\s/g, '').indexOf(k.replace(/\s/g, '') + '：') === 0; }) || ''; return it.replace(/^[^:：]+[:：]\s*/, ''); }) }; });
+        if (!s.lead) s.lead = '과제 ' + s.cells.length + '개를 담당 부서별 첫 조치로 착수 필요';
+      } else if (s.table && s.table.rows.length) {
+        var hd = s.table.head, rows = s.table.rows, aux = s.cells;
+        if (/대비|전환/.test(s.rel || '') || /전환표/.test(dm) || hd.length === 3) {
+          s.dmain = '전환표 | 차원: ' + rows.map(function (r) { return r[0]; }).join(' / ');
+          s.cells = [1, 2].map(function (k) { return { name: hd[k] || '', items: rows.map(function (r) { return r[k] || ''; }) }; });
+        } else {
+          s.dmain = '표 | 머리: ' + hd.join(' / ');
+          s.cells = rows.map(function (r) { return { name: r[0], items: r.slice(1) }; });
+        }
+        if (aux.length) { s.cells = s.cells.concat(aux.map(function (c) { return { name: '[근거] ' + c.name, items: c.items }; })); s.daux = '카드 묶음'; }
+      } else {
+        var nm = dm.replace(/\s*\/.*$/, '').trim();
+        if (/단계/.test(nm) && s.cells.length > 5) nm = '카드 묶음';
+        s.dmain = nm || '카드 묶음';
+      }
+      if (s.nums) {
+        if (!s.daux) s.daux = '수치 타일 | 값: ' + s.nums.split(/\s*\/\s*/).slice(0, 4).join(' / ');
+        else s.facts = '핵심 수치 | ' + s.nums.split(/\s*\/\s*/).map(function (v) { var f = firstNum(v); return f ? f.big + ': ' + f.label : v; }).join(' / ');
+      }
+      if (!s.lead) s.lead = concl.slice(0, 2).join(', ') || s.title;
+      s.title = (i + 1) + '. ' + s.title;
+    });
+    if (!deck.cover) deck.cover = { title: deck.slides[0] ? deck.slides[0].title : 'TK 장표', sub: '' };
+    return deck;
+  }
   /* ── 2. 부품 고르기 ─────────────────────── */
   function rel(s) {
     var t = s.struct || '';
@@ -397,7 +481,7 @@
     m.className = '';
     if (!t) { m.textContent = '원고를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
     if (/<!doctype|<html|<section/i.test(t)) { show(fixHtml(t)); m.textContent = 'HTML 코드를 그대로 열었습니다.'; return; }
-    var d = parse(t);
+    var d = isStruct(t) ? parseStruct(t) : parse(t);
     if (!d.slides.length) { m.textContent = '「### 본문 1 : …」 같은 장 머리를 찾지 못했습니다. 장표기획 원고 전체를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
     show(build(d));
     var miss = d.slides.filter(function (s) { return !s.cells.length; }).length;
