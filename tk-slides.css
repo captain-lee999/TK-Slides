@@ -316,7 +316,9 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 /* ⑫ 표 tk-table — 평가·비교 표(머리 연녹) */
 .tk-table{width:100%;border-collapse:collapse;font-size:var(--fs);line-height:1.3;}
 .tk-table th,.tk-table td{border:var(--hairline) solid var(--line);padding:4px 7px;vertical-align:middle;}
-.tk-table thead th{background:var(--table-head);font-weight:700;text-align:center;}
+/* 표 머리: 형광 연녹(#ccffcc) 대신 TK 녹색 계열 — 연녹 바탕 + 진녹 글자 + 아래 중녹 선 */
+.tk-table thead th{background:var(--green-tint);color:var(--tab-green);font-weight:700;text-align:center;border-bottom:2px solid var(--green-mid);}
+.tk-table tbody th{background:var(--gray-tint);}
 .tk-table tbody th{background:var(--gray-tint);font-weight:700;text-align:center;white-space:nowrap;}
 .tk-table td.n{text-align:right;font-weight:700;white-space:nowrap;}
 .tk-table td.c{text-align:center;}
@@ -330,7 +332,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-chart svg{position:absolute;left:0;top:0;display:block;width:100%;height:100%;overflow:visible;}
 .tk-chart text{font-family:var(--font-arial);}
 .tk-gantt{display:grid;min-height:0;font-size:calc(var(--fs) - 0.5px);}
-.tk-gantt>.tk-gh{font-weight:700;text-align:center;background:var(--table-head);border:var(--hairline) solid var(--line);padding:3px;}
+.tk-gantt>.tk-gh{font-weight:700;text-align:center;background:var(--green-tint);color:var(--tab-green);border:var(--hairline) solid var(--line);padding:3px;}
 .tk-gantt>.tk-gt{display:flex;align-items:center;padding:3px 7px;font-weight:700;background:var(--gray-tint);border:var(--hairline) solid var(--line);border-top:0;}
 .tk-gantt>.tk-gc{border-right:var(--hairline) dashed var(--line-light);border-bottom:var(--hairline) solid var(--line-light);}
 .tk-gantt>.tk-gb{align-self:center;margin:3px 2px;padding:3px 7px;background:var(--green-mid);color:var(--on-fill);border-radius:var(--radius-chip);font-weight:700;font-size:calc(var(--fs) - 1px);line-height:1.25;}

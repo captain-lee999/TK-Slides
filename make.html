@@ -20,7 +20,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3.2</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3.3</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;  - 실행: ☞ …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -115,12 +115,32 @@
       if (!raw.length) return;
       var base = Math.min.apply(null, raw.map(function (r) { return r.ind; }));
       var indented = raw.some(function (r) { return r.ind > base; });
-      raw.forEach(function (r, i) {
+      /* 도식 재료로 칸마다 줄 수를 미리 앎: 전환표 차원 수 · 평가표 기준 수 · 레인 단계 수 · 사례 2줄 */
+      function fixedN(dline) {
+        var d = design(dline); if (!d) return 0;
+        if (/전환표|대비표/.test(d.name)) return list(d.kv['차원']).length;
+        if (/평가표/.test(d.name)) return list(d.kv['기준']).length;
+        if (/레인|수영/.test(d.name)) return list(d.kv['단계']).length;
+        if (/사례|이행/.test(d.name)) return 2;
+        if (/^표/.test(d.name)) return Math.max(0, list(d.kv['머리']).length - 1);
+        return 0;
+      }
+      var nMain = fixedN(s.dmain), nAux = fixedN(s.daux);
+      var gapAll = raw.filter(function (r) { return r.gap; }).length > raw.length * 0.5;
+      function looksName(x) { return x.length <= 24 && !/[:：→]/.test(x) && !/^[↑↓✓✗●◐○!*\d'’]/.test(x) && !/^결론/.test(x) && !/\d[\d,.]*\s*(%|억|원|명|개|건|배|년)/.test(x); }
+      var forced = 0, prevConcl = false;
+      raw.forEach(function (r) {
         var lastCell = s.cells[s.cells.length - 1], isName;
         if (indented) isName = r.ind === base;
-        else isName = !lastCell || r.gap || (r.txt.length <= 18 && !/\d/.test(r.txt) && lastCell.items.length >= 2);
-        if (isName) s.cells.push({ name: r.txt, items: [] });
-        else (lastCell || (s.cells.push({ name: '', items: [] }), s.cells[0])).items.push(r.txt);
+        else if (/^\[근거\]/.test(r.txt) || !lastCell) isName = true;
+        else if (forced > 0) isName = false;
+        else if (prevConcl) isName = true;
+        else if (/^\[근거\]/.test(lastCell.name)) isName = false;
+        else if (!gapAll) isName = r.gap || (r.txt.length <= 18 && looksName(r.txt) && lastCell.items.length >= 2 && false);
+        else isName = looksName(r.txt) && lastCell.items.length >= 1;
+        if (isName) { s.cells.push({ name: r.txt, items: [] }); forced = indented ? 0 : (/^\[근거\]/.test(r.txt) ? nAux : nMain); }
+        else { (lastCell || (s.cells.push({ name: '', items: [] }), s.cells[0])).items.push(r.txt); if (forced > 0) forced--; }
+        prevConcl = /^결론\s*[:：]/.test(r.txt);
       });
     });
     deck.slides.forEach(function (s) { s.cells = s.cells.filter(function (c) { return c.name || c.items.length; }); });
