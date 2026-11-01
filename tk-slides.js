@@ -101,6 +101,12 @@
       var tt = el('div', { class: 'tk-gt' }, t.getAttribute('data-task') || '');
       tt.style.gridRow = row; tt.style.gridColumn = 1; box.appendChild(tt);
       for (var c = 0; c < per.length; c++) { var g = el('div', { class: 'tk-gc' }); g.style.gridRow = row; g.style.gridColumn = c + 2; box.appendChild(g); }
+      if (t.hasAttribute('data-at')) {
+        var at = +t.getAttribute('data-at'), ms = el('div', { class: 'tk-ms', 'data-shape': 'diamond' });
+        ms.style.gridRow = row; ms.style.gridColumn = at + 1; box.appendChild(ms);
+        var lab = el('div', { class: 'tk-mslab' }, t.innerHTML); lab.style.gridRow = row; lab.style.gridColumn = at + 1; box.appendChild(lab);
+        return;
+      }
       var b = el('div', { class: 'tk-gb ' + (t.className || '') }, t.innerHTML);
       b.style.gridRow = row; b.style.gridColumn = (f + 1) + ' / ' + (to + 2); box.appendChild(b);
     });
@@ -131,6 +137,13 @@
       slide.style.setProperty('--fs', fs + 'px');
       slide.style.setProperty('--gap', Math.max(4, Math.round(fs * 0.6)) + 'px');
     }
+    /* 빈 면이 많으면 글자를 키워 면을 채움(최대 14px) */
+    if (fs === 12 && slide.getAttribute('data-grow') !== 'no') {
+      while (fs < 14 && emptiness(body).empty > 0.28) {
+        fs += 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px');
+        if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); break; }
+      }
+    }
     slide.setAttribute('data-fs', fs);
     if (overflowing(body)) slide.setAttribute('data-overflow', 'yes');
   }
@@ -150,6 +163,168 @@
     if (!c.querySelector('.tk-logos')) c.appendChild(el('div', { class: 'tk-logos' },
       '<img crossorigin="anonymous" src="' + IMG('qtaste-emblem.png') + '" alt="Qtaste"><img crossorigin="anonymous" src="' + IMG('borntaste-emblem.png') + '" alt="BORN TASTE"><img crossorigin="anonymous" src="' + IMG('veggiegarden-emblem.png') + '" alt="베지가든" style="height:58px">'));
     if (!c.querySelector('.tk-tagline')) c.appendChild(el('p', { class: 'tk-tagline' }, 'Global Agility &amp; Growth'));
+  }
+
+  /* ══ v2: 차트 · 순환 · 허브 · 레인 · 배치 탐색 ══════════════════ */
+  var PAL = ['#1f497d', '#9dc3e6', '#b7b7b7', '#4b7545', '#7f7f7f'];
+  function numv(v) { if (typeof v === 'number') return v; var n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; }
+  function legend(box, series, colorOf) {
+    if (series.length < 2) return;
+    var lg = el('div', { class: 'tk-legend' });
+    series.forEach(function (s, i) { lg.appendChild(el('span', null, '<i style="background:' + colorOf(s, i) + '"></i>' + s.name)); });
+    box.parentNode.insertBefore(lg, box);
+  }
+  /* <div class="tk-chart tk-plot" data-type="group|stack|line|combo" data-cats='["’25","’26"]' data-series='[{"name":"농심","values":[1,2]},{"name":"이익률","values":[3,4],"kind":"line"}]' data-key="1" data-unit="억"> */
+  function plot(box) {
+    var type = box.getAttribute('data-type') || 'group';
+    var cats = parse(box.getAttribute('data-cats')) || [], series = parse(box.getAttribute('data-series')) || [];
+    if (!cats.length || !series.length) return;
+    var key = box.hasAttribute('data-key') ? +box.getAttribute('data-key') : -1;
+    var prev = box.previousElementSibling; if (prev && prev.classList.contains('tk-legend')) prev.remove();
+    var colorOf = function (s, i) { return s.color || (series.length === 1 ? (C.navy) : PAL[i % PAL.length]); };
+    legend(box, series, colorOf);
+    var W = box.clientWidth || 360, H = box.clientHeight || 180, top = 20, bot = 20, n = cats.length, slot = W / n;
+    var svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'none' });
+    var bars = series.filter(function (s) { return (s.kind || (type === 'line' ? 'line' : 'bar')) === 'bar'; });
+    var lines = series.filter(function (s) { return (s.kind || (type === 'line' ? 'line' : 'bar')) === 'line'; });
+    var stack = type === 'stack';
+    var bmax = 0;
+    cats.forEach(function (c, ci) {
+      var sum = 0; bars.forEach(function (s) { var v = numv(s.values[ci]); sum += v; if (!stack) bmax = Math.max(bmax, v); });
+      if (stack) bmax = Math.max(bmax, sum);
+    });
+    bmax = bmax * 1.12 || 1;
+    var ph = H - top - bot;
+    cats.forEach(function (c, ci) {
+      var gw = Math.min(slot * 0.7, stack ? 58 : 34 * Math.max(1, bars.length)), x0 = slot * ci + (slot - gw) / 2;
+      var acc = 0;
+      bars.forEach(function (s, si) {
+        var v = numv(s.values[ci]), h = ph * v / bmax, bw = stack ? gw : gw / bars.length;
+        var x = stack ? x0 : x0 + bw * si, y = stack ? H - bot - acc - h : H - bot - h;
+        var col = colorOf(s, series.indexOf(s));
+        if (key >= 0 && ci !== key && series.length === 1) col = C.prior;
+        svg.appendChild(sv('rect', { x: x + (stack ? 0 : 1), y: y, width: Math.max(2, bw - (stack ? 0 : 2)), height: Math.max(1, h), fill: col }));
+        var lab = s.labels && s.labels[ci] ? s.labels[ci] : fmt(s.values[ci]);
+        if (stack) { if (h > 13) svg.appendChild(sv('text', { x: x + bw / 2, y: y + h / 2 + 4, 'text-anchor': 'middle', 'font-size': 10.5, 'font-weight': 700, fill: si === 0 && col === PAL[0] ? '#fff' : C.ink }, lab)); }
+        else svg.appendChild(sv('text', { x: x + bw / 2, y: y - 4, 'text-anchor': 'middle', 'font-size': bars.length > 2 ? 10 : 12, 'font-weight': 700, fill: C.ink }, lab));
+        acc += h;
+      });
+      if (stack) svg.appendChild(sv('text', { x: x0 + gw / 2, y: H - bot - acc - 5, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: C.ink }, fmt(bars.reduce(function (a, s) { return a + numv(s.values[ci]); }, 0))));
+      svg.appendChild(sv('text', { x: slot * ci + slot / 2, y: H - 5, 'text-anchor': 'middle', 'font-size': 11, fill: ci === key ? C.ink : C.label, 'font-weight': ci === key ? 700 : 400, 'font-family': 'Noto Sans KR' }, c));
+    });
+    lines.forEach(function (s, li) {
+      var vals = s.values.map(numv), mx = Math.max.apply(null, vals), mn = Math.min.apply(null, vals);
+      var lo = bars.length ? mn - (mx - mn) * 0.6 : Math.min(0, mn), hi = mx + (mx - lo) * 0.15 || 1;
+      var pts = vals.map(function (v, ci) { return [slot * ci + slot / 2, top + 6 + (ph - 12) * (1 - (v - lo) / (hi - lo || 1))]; });
+      var col = s.color || (bars.length ? '#c0504d' : PAL[li % PAL.length]);
+      for (var k = 0; k < pts.length - 1; k++) svg.appendChild(sv('line', { x1: pts[k][0], y1: pts[k][1], x2: pts[k + 1][0], y2: pts[k + 1][1], stroke: col, 'stroke-width': 2.2 }));
+      pts.forEach(function (p, ci) {
+        svg.appendChild(sv('circle', { cx: p[0], cy: p[1], r: 3.6, fill: '#fff', stroke: col, 'stroke-width': 2 }));
+        svg.appendChild(sv('text', { x: p[0], y: p[1] - 8, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: col }, s.labels && s.labels[ci] ? s.labels[ci] : fmt(s.values[ci])));
+      });
+    });
+    svg.appendChild(sv('line', { x1: 0, x2: W, y1: H - bot, y2: H - bot, stroke: C.line, 'stroke-width': 1 }));
+    box.innerHTML = ''; box.appendChild(svg);
+  }
+  /* 순환 고리: <div class="tk-cycle"><div class="tk-cnode"><b>이름</b><span>설명</span></div>…</div> */
+  function ring(box, hub) {
+    var nodes = Array.prototype.slice.call(box.querySelectorAll(hub ? ':scope > .tk-spoke' : ':scope > .tk-cnode'));
+    var center = box.querySelector(':scope > .tk-ccenter');
+    if (!nodes.length) return;
+    var W = box.clientWidth, H = box.clientHeight, n = nodes.length;
+    var nw = Math.min(170, W / (n > 4 ? 3 : 2.6)), nh = Math.min(80, H / (n > 4 ? 3.4 : 3));
+    nodes.forEach(function (nd) { nd.style.width = nw + 'px'; nd.style.minHeight = nh + 'px'; });
+    var rx = (W - nw) / 2, ry = (H - nh) / 2 - 2, cx = W / 2, cy = H / 2;
+    var pos = nodes.map(function (nd, i) {
+      var a = -Math.PI / 2 + 2 * Math.PI * i / n, h = nd.offsetHeight;
+      var x = cx + rx * Math.cos(a) - nw / 2, y = cy + ry * Math.sin(a) - h / 2;
+      nd.style.left = x + 'px'; nd.style.top = Math.max(0, Math.min(H - h, y)) + 'px';
+      return { x: x + nw / 2, y: Math.max(0, Math.min(H - h, y)) + h / 2, w: nw, h: h };
+    });
+    if (center) { var cs = Math.min(W, H) * (hub ? 0.34 : 0.3); center.style.width = center.style.height = cs + 'px'; center.style.left = (cx - cs / 2) + 'px'; center.style.top = (cy - cs / 2) + 'px'; }
+    var old = box.querySelector(':scope > svg'); if (old) old.remove();
+    var svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H });
+    function edge(p, q, r) { var dx = q.x - p.x, dy = q.y - p.y, d = Math.sqrt(dx * dx + dy * dy) || 1; return [p.x + dx / d * r, p.y + dy / d * r]; }
+    pos.forEach(function (p, i) {
+      if (hub) {
+        var cr = center ? center.offsetWidth / 2 : 0, a = edge({ x: cx, y: cy }, p, cr + 2), b = edge(p, { x: cx, y: cy }, Math.min(p.w, p.h) / 2 + 4);
+        svg.appendChild(sv('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C.line, 'stroke-width': 2 }));
+      } else {
+        var q = pos[(i + 1) % n], s1 = edge(p, q, Math.min(p.w, p.h) / 2 + 10), s2 = edge(q, p, Math.min(q.w, q.h) / 2 + 12);
+        svg.appendChild(sv('line', { x1: s1[0], y1: s1[1], x2: s2[0], y2: s2[1], stroke: C.green, 'stroke-width': 2.4, 'data-arrow': '1' }));
+        var ang = Math.atan2(s2[1] - s1[1], s2[0] - s1[0]), L = 9;
+        svg.appendChild(sv('polygon', { 'data-ah': '1', points: [s2[0], s2[1], s2[0] - L * Math.cos(ang - 0.45), s2[1] - L * Math.sin(ang - 0.45), s2[0] - L * Math.cos(ang + 0.45), s2[1] - L * Math.sin(ang + 0.45)].join(','), fill: C.green }));
+      }
+    });
+    box.insertBefore(svg, box.firstChild);
+  }
+  /* 수영 레인: <div class="tk-lanes" data-steps="요구 인지,선택 평가,승인"><div data-actor="영업팀">활동|활동|-</div>…</div> */
+  function lanes(box) {
+    if (box.getAttribute('data-built')) return;
+    var steps = (box.getAttribute('data-steps') || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    var rows = Array.prototype.slice.call(box.children);
+    box.style.gridTemplateColumns = (box.getAttribute('data-label') || '96px') + ' repeat(' + steps.length + ', 1fr)';
+    box.innerHTML = '';
+    box.appendChild(el('div', { class: 'tk-lh' }, ''));
+    steps.forEach(function (s) { box.appendChild(el('div', { class: 'tk-lh' }, s)); });
+    rows.forEach(function (r) {
+      box.appendChild(el('div', { class: 'tk-la' }, r.getAttribute('data-actor') || ''));
+      var cells = r.innerHTML.split('|');
+      for (var i = 0; i < steps.length; i++) {
+        var c = (cells[i] || '').trim(), key = /^\*/.test(c);
+        box.appendChild(el('div', { class: 'tk-lc' + (!c || c === '-' ? ' tk-empty' : '') + (key ? ' tk-key' : '') }, c === '-' ? '' : c.replace(/^\*/, '')));
+      }
+    });
+    box.setAttribute('data-built', '1');
+  }
+  function drawAll(scope) {
+    scope.querySelectorAll('.tk-bars').forEach(bars);
+    scope.querySelectorAll('.tk-wf').forEach(waterfall);
+    scope.querySelectorAll('.tk-plot').forEach(plot);
+    scope.querySelectorAll('.tk-cycle').forEach(function (b) { ring(b, false); });
+    scope.querySelectorAll('.tk-hub').forEach(function (b) { ring(b, true); });
+  }
+  /* 배치 탐색: 주 도식 · 근거 도식 배치 후보를 그려 보고 넘침 · 빈 칸이 가장 적은 것을 고름 */
+  var LAYOUTS = [
+    { dir: 'column', m: '1 1 auto', a: '0 0 auto' },
+    { dir: 'column', m: '0 0 auto', a: '1 1 auto' },
+    { dir: 'column', m: '1 1 0', a: '1 1 0' },
+    { dir: 'row', m: '0 0 60%', a: '1 1 0' },
+    { dir: 'row', m: '0 0 50%', a: '1 1 0' },
+    { dir: 'row', m: '0 0 40%', a: '1 1 0' }
+  ];
+  var BOXES = '.tk-list, .tk-ev, .tk-q, .tk-node, td, .tk-cnode, .tk-spoke, .tk-from, .tk-to, .tk-lc, .tk-branch > b, .tk-sr > span';
+  function emptiness(body) {
+    var br = body.getBoundingClientRect(), area = br.width * br.height, rg = document.createRange(), empty = 0, cramp = 0;
+    body.querySelectorAll(BOXES).forEach(function (b) {
+      var r = b.getBoundingClientRect(); if (r.height < 8 || r.width < 8) return;
+      rg.selectNodeContents(b); var c = rg.getBoundingClientRect();
+      var used = Math.min(1, (c.height || 0) / r.height);
+      if (!b.closest('.tk-list') || b.classList.contains('tk-list')) empty += (1 - used) * r.width * r.height / area;
+    });
+    body.querySelectorAll('.tk-list > li, td, .tk-sr > span, .tk-from, .tk-to').forEach(function (e) {
+      var r = e.getBoundingClientRect(), lh = parseFloat(getComputedStyle(e).lineHeight) || 16;
+      if (r.width < 120 && r.height > lh * 3.2) cramp += 1;
+    });
+    return { empty: empty, cramp: cramp };
+  }
+  function layout(slide) {
+    var body = slide.querySelector('.tk-body.tk-auto'), wrap = body && body.querySelector('.tk-mainwrap');
+    if (!wrap || !wrap.querySelector('.tk-aux')) { fit(slide); return; }
+    var fixed = body.getAttribute('data-layout'), best = null;
+    LAYOUTS.forEach(function (L, i) {
+      if (fixed != null && +fixed !== i) return;
+      wrap.style.setProperty('--dir', L.dir); wrap.style.setProperty('--mflex', L.m); wrap.style.setProperty('--aflex', L.a);
+      drawAll(slide); fit(slide);
+      var fs = +slide.getAttribute('data-fs'), ov = slide.getAttribute('data-overflow') === 'yes';
+      var em = emptiness(body);
+      var score = (ov ? 1e6 : 0) + Math.max(0, 12 - fs) * 60 + em.empty * 100 + em.cramp * 6 + i * 0.5;
+      if (!best || score < best.s) best = { s: score, i: i };
+    });
+    var L = LAYOUTS[best.i];
+    wrap.style.setProperty('--dir', L.dir); wrap.style.setProperty('--mflex', L.m); wrap.style.setProperty('--aflex', L.a);
+    slide.setAttribute('data-layout', best.i);
+    drawAll(slide); fit(slide); drawAll(slide);
   }
   /* 장식 요소를 실제 요소로 넣음 — 화면과 PPT 내보내기가 같은 모양을 쓰게 */
   function decorate() {
@@ -275,21 +450,34 @@
             else if (kind === 'chevron') kind = S.chevron;
             else if (kind === 'homePlate') kind = S.homePlate;
             else if (kind === 'line') kind = S.line;
+            else if (kind === 'ellipse') kind = S.ellipse;
+            else if (kind === 'diamond') kind = S.diamond;
             else kind = S.rect;
             slide.addShape(kind, o);
           }
-          function svg(sv) {
-            sv.querySelectorAll('rect, line, text').forEach(function (g) {
-              var r = g.getBoundingClientRect(); if (!inside(r) && g.tagName !== 'line') return;
+          function svg(svEl) {
+            var sr = svEl.getBoundingClientRect(), vb = (svEl.getAttribute('viewBox') || '0 0 ' + sr.width + ' ' + sr.height).split(/\s+/).map(Number);
+            var kx = sr.width / (vb[2] || sr.width), ky = sr.height / (vb[3] || sr.height);
+            function px(x) { return (sr.left - B.left + (x - vb[0]) * kx) * K; }
+            function py(y) { return (sr.top - B.top + (y - vb[1]) * ky) * K; }
+            svEl.querySelectorAll('rect, line, text, circle').forEach(function (g) {
+              var r = g.getBoundingClientRect(), cs = getComputedStyle(g);
+              if (g.tagName === 'line') {
+                var x1 = +g.getAttribute('x1'), y1 = +g.getAttribute('y1'), x2 = +g.getAttribute('x2'), y2 = +g.getAttribute('y2');
+                var o = { x: px(Math.min(x1, x2)), y: py(Math.min(y1, y2)), w: Math.max(0.001, Math.abs(x2 - x1) * kx * K), h: Math.max(0.001, Math.abs(y2 - y1) * ky * K),
+                  line: { color: hex(cs.stroke) || 'A6A6A6', width: Math.max(0.5, pxf(g.getAttribute('stroke-width')) || 1), dashType: g.getAttribute('stroke-dasharray') ? 'dash' : 'solid' } };
+                if (x2 < x1) o.flipH = true; if (y2 < y1) o.flipV = true;
+                if (g.getAttribute('data-arrow')) o.line.endArrowType = 'triangle';
+                slide.addShape(S.line, o); return;
+              }
+              if (!inside(r)) return;
               var b = box(r);
-              if (g.tagName === 'rect') shape('rect', b, { fill: { color: hex(getComputedStyle(g).fill) || 'BFBFBF' }, line: { type: 'none' } });
-              else if (g.tagName === 'line') {
-                var dash = g.getAttribute('stroke-dasharray');
-                shape('line', b, { line: { color: hex(getComputedStyle(g).stroke) || 'A6A6A6', width: 0.75, dashType: dash ? 'dash' : 'solid' } });
-              } else {
-                var cs = getComputedStyle(g), pad = 0.08;
-                slide.addText(g.textContent, { x: b.x - pad, y: b.y - 0.02, w: b.w + pad * 2, h: b.h + 0.04, margin: 0, align: 'center', valign: 'middle',
-                  fontFace: 'Arial', fontSize: pxf(g.getAttribute('font-size')) || 11, bold: (g.getAttribute('font-weight') || '') === '700', color: hex(cs.fill) || '000000', fit: 'none' });
+              if (g.tagName === 'rect') shape('rect', b, { fill: { color: hex(cs.fill) || 'BFBFBF' }, line: { type: 'none' } });
+              else if (g.tagName === 'circle') slide.addShape(S.ellipse, Object.assign(b, { fill: { color: hex(cs.fill) || 'FFFFFF' }, line: { color: hex(cs.stroke) || 'A6A6A6', width: pxf(g.getAttribute('stroke-width')) || 1 } }));
+              else {
+                var pad = 0.08;
+                slide.addText(g.textContent, { x: b.x - pad, y: b.y - 0.02, w: b.w + pad * 2, h: b.h + 0.04, margin: 0, align: 'center', valign: 'middle', wrap: false,
+                  fontFace: (g.getAttribute('font-family') || '').indexOf('Noto') >= 0 ? 'Noto Sans KR' : 'Arial', fontSize: pxf(g.getAttribute('font-size')) || 11, bold: (g.getAttribute('font-weight') || '') === '700', color: hex(cs.fill) || '000000', fit: 'none' });
               }
             });
           }
@@ -297,7 +485,7 @@
             if (e.nodeType !== 1) return;
             var cs = getComputedStyle(e);
             if (cs.display === 'none' || cs.visibility === 'hidden') return;
-            if (e.tagName === 'svg') return svg(e);
+            if (e.tagName === 'svg' || e.tagName === 'SVG') return svg(e);
             var r = e.getBoundingClientRect();
             if (e.tagName === 'IMG') {
               if (inside(r) && e.src) {
@@ -312,6 +500,8 @@
             }
             if (inside(r) || e === sl) {
               var b = box(r), fill = hex(cs.backgroundColor), kind = e.getAttribute('data-shape');
+              var rad = cs.borderTopLeftRadius;
+              if (!kind && (/%/.test(rad) ? parseFloat(rad) >= 45 : pxf(rad) >= Math.min(r.width, r.height) * 0.45)) kind = 'ellipse';
               var bw = ['Top', 'Right', 'Bottom', 'Left'].map(function (s) { return cs['border' + s + 'Style'] !== 'none' ? pxf(cs['border' + s + 'Width']) : 0; });
               var bc = ['Top', 'Right', 'Bottom', 'Left'].map(function (s) { return hex(cs['border' + s + 'Color']); });
               var uniform = bw[0] > 0 && bw.every(function (v) { return v === bw[0]; }) && bc.every(function (v) { return v === bc[0]; });
@@ -393,26 +583,22 @@
     }
     decorate();
     if (!document.querySelector('.tk-export') && document.body.getAttribute('data-export') !== 'no') {
-      var bt = el('button', { class: 'tk-export', type: 'button' }, 'PPT 내보내기');
+      var bar = el('div', { class: 'tk-bar' }), bt = el('button', { class: 'tk-export', type: 'button' }, 'PPT 내보내기');
       bt.addEventListener('click', function () { exportPPT(bt); });
-      document.body.appendChild(bt);
+      bar.appendChild(bt); document.body.insertBefore(bar, document.body.firstChild);
     }
     Array.prototype.forEach.call(slides, function (s, i) {
       if (s.classList.contains('tk-cover')) cover(s);
       else frame(s, i + 1);
     });
-    document.querySelectorAll('.tk-bars').forEach(bars);
-    document.querySelectorAll('.tk-wf').forEach(waterfall);
     document.querySelectorAll('.tk-gantt').forEach(gantt);
-    document.querySelectorAll('.tk-slide').forEach(fit);
-    document.querySelectorAll('.tk-bars').forEach(bars);
-    document.querySelectorAll('.tk-wf').forEach(waterfall);
+    document.querySelectorAll('.tk-lanes').forEach(lanes);
+    drawAll(document);
+    document.querySelectorAll('.tk-slide').forEach(layout);
     zoom();
     window.addEventListener('resize', zoom);
     setTimeout(function () {
-      document.querySelectorAll('.tk-slide').forEach(fit);
-      document.querySelectorAll('.tk-bars').forEach(bars);
-      document.querySelectorAll('.tk-wf').forEach(waterfall);
+      document.querySelectorAll('.tk-slide').forEach(layout);
       window.TK_SLIDES_READY = true;
     }, 350);
   }

@@ -370,9 +370,78 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-toc .tk-part>ol>li>i{font-style:normal;font-weight:700;color:var(--green-mid);margin-right:6px;}
 
 /* 내보내기 단추 (인쇄 때 숨김) */
-.tk-export{position:fixed;right:14px;bottom:14px;z-index:99;padding:8px 14px;border:0;border-radius:6px;background:#1e5a32;color:#fff;font:700 13px var(--font-sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.tk-bar{position:sticky;top:0;z-index:99;display:flex;justify-content:flex-end;gap:8px;padding:6px 14px;background:rgba(233,233,233,.94);}
+.tk-export{padding:8px 14px;border:0;border-radius:6px;background:#1e5a32;color:#fff;font:700 13px var(--font-sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3);}
 .tk-export[disabled]{background:#7f7f7f;cursor:wait;}
-@media print{.tk-export{display:none;}}
+@media print{.tk-bar{display:none;}}
 /* 전환표 차원 칸 없는 형 */
 .tk-shift.tk-nolabel{--shift-label:0px;column-gap:0;}
 .tk-shift.tk-nolabel>.tk-sr>:nth-child(1){padding:0;visibility:hidden;}
+
+/* ══ v2 부품 ═══════════════════════════════════════════════ */
+/* 주 도식 · 근거 도식 칸 (배치는 tk-slides.js가 그려 보고 고름) */
+.tk-body.tk-auto{display:flex;gap:var(--gap);}
+.tk-body.tk-auto>.tk-mainwrap{flex:1 1 auto;display:flex;flex-direction:var(--dir,column);gap:var(--gap);min-height:0;}
+.tk-mainwrap>.tk-main{flex:var(--mflex,1 1 auto);display:flex;flex-direction:column;min-height:0;min-width:0;}
+.tk-mainwrap>.tk-aux{flex:var(--aflex,0 0 auto);display:flex;flex-direction:column;min-height:0;min-width:0;}
+.tk-main>*,.tk-aux>*{flex:1 1 auto;min-height:0;}
+.tk-main>.tk-bh,.tk-aux>.tk-bh{flex:none;}
+
+/* 이슈 트리 잎 상자형: <div class="tk-tree tk-chips"> */
+.tk-tree.tk-chips .tk-branch{grid-template-columns:var(--branch-label,120px) 1fr;}
+.tk-tree.tk-chips .tk-branch>.tk-list{border:0;padding:0 0 0 8px;flex-direction:row;flex-wrap:wrap;gap:4px;align-content:center;}
+.tk-tree.tk-chips .tk-branch>.tk-list>li{flex:1 1 30%;margin:0;padding:5px 8px;border:var(--hairline) solid var(--line);background:var(--surface);}
+.tk-tree.tk-chips .tk-branch>.tk-list>li::before{content:none;}
+
+/* 순환 고리 · 허브 앤 스포크: 노드 위치는 JS */
+.tk-cycle,.tk-hub{position:relative;min-height:180px;}
+.tk-cycle>svg,.tk-hub>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;}
+.tk-cnode,.tk-spoke{position:absolute;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:6px 8px;background:var(--green-tint);border:1.5px solid var(--green-mid);border-radius:var(--radius-block);}
+.tk-cnode>b,.tk-spoke>b{color:var(--tab-green);font-size:calc(var(--fs) + 1px);}
+.tk-cnode>span,.tk-spoke>span{font-size:calc(var(--fs) - 0.5px);color:var(--ink-soft);margin-top:2px;}
+.tk-cnode.tk-key,.tk-spoke.tk-key{background:var(--tab-green);border-color:var(--tab-green);} .tk-cnode.tk-key>*,.tk-spoke.tk-key>*{color:var(--on-fill)!important;}
+.tk-ccenter{position:absolute;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border-radius:50%;background:var(--tab-navy);color:var(--on-fill);font-weight:700;padding:8px;font-size:calc(var(--fs) + 1px);}
+
+/* 피라미드 */
+.tk-pyramid{display:flex;flex-direction:column;gap:3px;min-height:0;}
+.tk-pyramid>div{flex:1 1 0;display:grid;grid-template-columns:44% 1fr;gap:12px;min-height:0;}
+.tk-pyramid>div>b{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--on-fill);background:var(--green-mid);padding:2px 6px;}
+.tk-pyramid>div:first-child>b{background:var(--tab-green);}
+.tk-pyramid>div>.tk-list{display:flex;flex-direction:column;justify-content:center;border-bottom:var(--hairline) dashed var(--line);padding:2px 0;}
+
+/* 수영 레인 (주체 × 단계): JS가 칸을 만듦 */
+.tk-lanes{display:grid;gap:3px;min-height:0;font-size:calc(var(--fs) - 0.5px);}
+.tk-lanes>.tk-lh{background:var(--green-mid);color:var(--on-fill);font-weight:700;text-align:center;padding:4px;}
+.tk-lanes>.tk-lh:first-child{background:transparent;}
+.tk-lanes>.tk-la{display:flex;align-items:center;justify-content:center;text-align:center;background:var(--navy-tint);color:var(--tab-navy);font-weight:700;padding:4px;}
+.tk-lanes>.tk-lc{display:flex;align-items:center;padding:4px 7px;background:var(--panel-fill-soft);border:var(--hairline) solid var(--line-light);}
+.tk-lanes>.tk-lc.tk-empty{background:transparent;border:0;}
+.tk-lanes>.tk-lc.tk-key{background:var(--green-tint);border-color:var(--tab-green);font-weight:700;}
+
+/* 사례 이행 (전 → 후) */
+.tk-cases{display:flex;flex-direction:column;gap:4px;min-height:0;}
+.tk-cases>.tk-case{display:grid;grid-template-columns:var(--case-label,110px) 1fr 30px 1fr;flex:1 1 0;min-height:0;align-items:stretch;}
+.tk-case>b{display:flex;align-items:center;justify-content:center;text-align:center;background:var(--navy-mid);color:var(--on-fill);padding:4px;}
+.tk-case>.tk-from{display:flex;align-items:center;padding:5px 9px;background:var(--gray-tint);color:var(--ink-soft);}
+.tk-case>.tk-to{grid-column:4;display:flex;align-items:center;padding:5px 9px;background:var(--green-tint);color:var(--ink);font-weight:700;}
+.tk-case>.tk-arrow{grid-column:3;grid-row:1;align-self:center;justify-self:center;width:14px;height:20px;background:var(--line);clip-path:polygon(0 0,100% 50%,0 100%);}
+
+/* 평가표 하비볼 */
+.tk-ball{font-size:calc(var(--fs) + 5px);line-height:1;color:var(--tab-green);}
+.tk-ball.tk-low{color:var(--line-dark);}
+
+/* 증감 배지 (KPI 타일 · 차트 주석) */
+.tk-delta{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:var(--radius-chip);background:var(--surface);color:var(--delta-up);font:700 11px var(--font-arial);vertical-align:middle;border:1px solid var(--delta-up);}
+.tk-delta.tk-down{color:var(--delta-down);border-color:var(--delta-down);}
+.tk-ev .tk-delta{font-size:11px;}
+
+/* 일정표 마일스톤 */
+.tk-gantt>.tk-ms{align-self:center;justify-self:center;width:13px;height:13px;background:var(--amber-point);transform:rotate(45deg);}
+.tk-gantt>.tk-mslab{align-self:end;justify-self:center;font-size:10px;font-weight:700;color:var(--ink-label);}
+
+/* 차트 범례 (계열 2개 이상일 때 막대 끝 이름 대신) */
+.tk-legend{display:flex;gap:12px;justify-content:flex-end;font-size:10px;color:var(--ink-label);flex:none;}
+.tk-legend i{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px;}
+
+/* 결론 띠(근거 묶음 아래) */
+.tk-concl{flex:none;padding:6px 12px;background:var(--tab-green);color:var(--on-fill);font-weight:700;text-align:center;}

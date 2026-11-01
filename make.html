@@ -65,7 +65,7 @@
         }
         if (/^\[?\s*목차\s*\]?/.test(t)) { deck.toc = { story: '', parts: [] }; cur = deck.toc; return; }
         var b = /^본문\s*\d+\s*[:：]\s*(.+)$/.exec(t) || /^(.+)$/.exec(t);
-        cur = { title: b[1].replace(/\s*-\s*(?=\d)/, '-').replace(/\s+/g, ' '), lead: '', subs: [], struct: '', cells: [], key: '', band: '', note: '', imp: '' };
+        cur = { title: b[1].replace(/\s*-\s*(?=\d)/, '-').replace(/\s+/g, ' '), lead: '', subs: [], struct: '', dmain: '', daux: '', cells: [], key: '', band: '', note: '', imp: '' };
         deck.slides.push(cur); return;
       }
       if (!cur) return;
@@ -86,7 +86,7 @@
         return;
       }
       if (cur === deck.cover) return;
-      var KNOWN = /^(리드|서브메시지|본문구조|본문|강조|받침|출처|시사점|물음|연결|근거|실행)$/;
+      var KNOWN = /^(리드|서브메시지|본문구조|주도식|근거도식|본문|강조|받침|출처|시사점|물음|연결|근거|실행|비중)$/;
       if (kv && !KNOWN.test(kv[1].replace(/\s/g, ''))) kv = null;
       if (kv && mode === 'body' && /^(근거|실행)$/.test(kv[1].replace(/\s/g, ''))) kv = null;
       if (kv) {
@@ -96,6 +96,8 @@
         if (k === '리드') cur.lead = v.replace(/^✓\s*/, '');
         else if (k === '서브메시지') { mode = 'sub'; if (v && !/^없음$/.test(v)) cur.subs.push({ kind: /^☞/.test(v) ? '실행' : '근거', text: v }); }
         else if (k === '본문구조') cur.struct = v;
+        else if (k === '주도식') cur.dmain = v;
+        else if (k === '근거도식') cur.daux = v;
         else if (k === '본문') { mode = 'body'; sub = 'gap'; if (v) cur.cells.push({ name: v, items: [] }); }
         else if (k === '강조') cur.key = v;
         else if (k === '받침') cur.band = v;
@@ -151,7 +153,7 @@
     for (i = 0; i < s.cells.length; i++) if (s.cells[i].items.some(function (x) { return hasKey(x, k); })) return i;
     return -1;
   }
-  function body(s, idx) {
+  function bodyAuto(s, idx, noBand) {
     var r = rel(s), C = s.cells, n = C.length, ki = keyIdx(s), used = {}, out = '';
     var desc = r.desc;
     if (!n) return '';
@@ -185,12 +187,150 @@
     } else {
       out = '<div class="tk-cards tk-grow">' + C.map(function (c, i) { return '<div class="tk-card' + (i === ki ? ' tk-key' : '') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
     }
+    if (noBand) return out;
     var band = s.band.split(/\s*→\s*/)[0];
     if (band) out += '<div class="tk-band"><b>' + (/사례/.test(band) ? '사례' : /추세|증가|확산/.test(band) ? '추세' : '근거') + '</b><p>' + esc(band) + '</p></div>';
     if (s.imp) out += '<div class="tk-band tk-green"><b>시사</b><p>' + esc(s.imp) + '</p></div>';
     return out;
   }
 
+  /* ── 도식 설계 줄 읽기: "이름 | 키: 값 / 값 | 키: 값" ── */
+  function design(line) {
+    if (!line) return null;
+    var parts = line.split('|'), d = { name: parts[0].trim().replace(/\s+/g, ''), raw: line, kv: {} };
+    parts.slice(1).forEach(function (p) { var m = /^\s*([^:：]+?)\s*[:：]\s*(.*)$/.exec(p); if (m) d.kv[m[1].replace(/\s/g, '')] = m[2].trim(); });
+    return d;
+  }
+  function list(v) { return (v || '').split(/\s*\/\s*/).map(function (x) { return x.trim(); }).filter(Boolean); }
+  function lastNum(x) { var m = /^(.*?)\s*([+\-−]?[\d,]+(?:\.\d+)?)\s*([%가-힣a-zA-Z]*)\s*$/.exec(x); return m ? { label: m[1].trim(), value: +m[2].replace(/[,−]/g, function (c) { return c === '−' ? '-' : ''; }), raw: m[2] + (m[3] || ''), unit: m[3] || '' } : null; }
+  function firstNum(x) { var m = /^\s*((?:[가-힣~]{1,3}\s?)?[+\-]?[\d,]+(?:\.\d+)?\s*(?:%p|%|배|억|조|원|명|개사|개|건|년|일|시간|달러)?(?:\s*이상)?)\s+(.*)$/.exec(x); return m ? { big: m[1].trim(), label: m[2].trim() } : null; }
+  function unitHead(d, title) { var u = d.kv['단위'], tt = d.kv['제목'] || title || ''; return (tt || u) ? '<h3 class="tk-bh">' + esc(tt) + (u ? '<small>(단위 : ' + esc(u) + ')</small>' : '') + '</h3>' : ''; }
+  var POS = { '왼쪽위': 0, '좌상': 0, '오른쪽위': 1, '우상': 1, '왼쪽아래': 2, '좌하': 2, '오른쪽아래': 3, '우하': 3 };
+  var BALL = function (g) { return /상|높|●|강/.test(g) ? '<span class="tk-ball">●</span>' : /중|보통|◐/.test(g) ? '<span class="tk-ball">◐</span>' : /하|낮|○|약/.test(g) ? '<span class="tk-ball tk-low">○</span>' : esc(g); };
+  function draw(d, C, s, used) {
+    var n = C.length, ki = keyIdx(Object.assign({}, s, { cells: C })), nm = d.name, kv = d.kv, out = '';
+    var head = kv['제목'] ? '<h3 class="tk-bh">' + esc(kv['제목']) + (kv['단위'] ? '<small>(단위 : ' + esc(kv['단위']) + ')</small>' : '') + '</h3>' : '';
+    if (/전환표|대비표|AS-IS|전후비교/.test(nm) && n >= 2) {
+      var dims = list(kv['차원']), a = C[0].items, b = C[1].items, rows = Math.max(a.length, b.length, dims.length);
+      var strip = function (x, dm) { return dm && x && x.indexOf(dm) === 0 ? x.slice(dm.length).replace(/^\s*[:：]\s*/, '') : x.replace(/^[^:：]{1,10}[:：]\s*/, function (m0) { return dims.length ? '' : m0; }); };
+      out = '<div class="tk-shift' + (dims.length ? '' : ' tk-nolabel') + ' tk-grow"' + (dims.length ? ' style="--shift-label:' + Math.min(110, Math.max(66, Math.max.apply(null, dims.map(function (x) { return x.length; })) * 12 + 18)) + 'px"' : '') + '><div class="tk-sr tk-sh"><span></span><span>' + esc(C[0].name) + '</span><span>' + esc(C[1].name) + '</span></div>';
+      for (var i = 0; i < rows; i++) {
+        var R = b[i] || '', isKey = !used.key && s.key && hasKey(R + (dims[i] || ''), s.key);
+        if (isKey) used.key = 1;
+        out += '<div class="tk-sr' + (isKey ? ' tk-key' : '') + '"><span>' + esc(dims[i] || '') + '</span><span>' + esc(strip(a[i] || '', dims[i])) + '</span><span>' + (hasKey(R, s.key) && !used.pt ? (used.pt = 1, markPt(strip(R, dims[i]), s.key)) : esc(strip(R, dims[i]))) + '</span></div>';
+      }
+      return head + out + '</div>';
+    }
+    if (/단계|셰브론|프로세스|절차/.test(nm)) return head + '<ol class="tk-steps tk-num tk-grow">' + C.map(function (c) { return '<li><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</li>'; }).join('') + '</ol>';
+    if (/인과|연쇄|사슬/.test(nm)) return head + '<div class="tk-chain tk-grow">' + C.map(function (c, i) { return '<div class="tk-node' + (i === n - 1 && /위험|감소|하락|축소|손실|실패|한계|전락|위기|악화/.test(c.name) ? ' tk-red' : '') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    if (/트리|분해/.test(nm)) {
+      var root = kv['뿌리'] || kv['상위'] || s.title.replace(/^[ⅠⅡⅢⅣⅤ\d\-.\s]+/, '');
+      var chips = C.every(function (c) { return c.items.every(function (x) { return x.length <= 30; }); });
+      return head + '<div class="tk-tree' + (chips ? ' tk-chips' : '') + ' tk-grow" style="--tree-root:' + (root.length > 14 ? 150 : 124) + 'px;--branch-label:' + Math.min(140, Math.max(96, Math.max.apply(null, C.map(function (c) { return c.name.length; })) * 12 + 20)) + 'px"><div class="tk-trunk">' + esc(root) + (kv['부연'] ? '<small>' + esc(kv['부연']) + '</small>' : '') + '</div><div class="tk-branches">' +
+        C.map(function (c, i) { return '<div class="tk-branch' + (i === ki ? ' tk-key' : '') + '"><b>' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div></div>';
+    }
+    if (/2[×xX]2|매트릭스|사분면/.test(nm)) {
+      var pk = POS[(kv['우선'] || '').replace(/\s/g, '')]; if (pk == null) pk = ki;
+      return head + '<div class="tk-matrix tk-grow" data-x="' + esc(kv['가로'] || '') + ' →" data-y="' + esc(kv['세로'] || '') + '">' + C.slice(0, 4).map(function (c, i) { return '<div class="tk-q' + (i === pk ? ' tk-key' : '') + (/위험|후순위|기피|배제/.test(c.name) ? ' tk-red' : '') + '"><b>' + esc(c.name) + '</b>' + c.items.map(esc).join('<br>') + '</div>'; }).join('') + '</div>';
+    }
+    if (/하우스/.test(nm)) return head + '<div class="tk-house tk-grow"><div class="tk-roof">' + esc(kv['지붕'] || s.lead) + '</div><div class="tk-pillars">' + C.map(function (c) { return '<div><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>' + (kv['바닥'] ? '<div class="tk-base">' + esc(kv['바닥']) + '</div>' : '') + '</div>';
+    if (/피라미드/.test(nm)) return head + '<div class="tk-pyramid tk-grow">' + C.map(function (c, i) { return '<div><b data-shape="' + (i === 0 ? 'trapezoid' : 'trapezoid') + '" style="margin:0 ' + Math.max(0, (n - 1 - i) * 7) + '%">' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    if (/층/.test(nm)) return head + '<div class="tk-layers tk-grow">' + C.map(function (c) { return '<div><b>' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    if (/순환|플라이휠|선순환|악순환/.test(nm)) return head + '<div class="tk-cycle tk-grow">' + (kv['중심'] ? '<div class="tk-ccenter">' + esc(kv['중심']) + '</div>' : '') + C.map(function (c, i) { return '<div class="tk-cnode' + (i === ki ? ' tk-key' : '') + '"><b>' + esc(c.name) + '</b><span>' + esc(c.items.join(' · ')) + '</span></div>'; }).join('') + '</div>';
+    if (/허브|스포크|방사/.test(nm)) return head + '<div class="tk-hub tk-grow"><div class="tk-ccenter">' + esc(kv['중심'] || s.title.replace(/^[ⅠⅡⅢⅣⅤ\d\-.\s]+/, '')) + '</div>' + C.map(function (c, i) { return '<div class="tk-spoke' + (i === ki ? ' tk-key' : '') + '"><b>' + esc(c.name) + '</b><span>' + esc(c.items.join(' · ')) + '</span></div>'; }).join('') + '</div>';
+    if (/레인|수영|주체별/.test(nm)) {
+      var st = list(kv['단계']);
+      return head + '<div class="tk-lanes tk-grow" data-steps="' + esc(st.join(',')) + '">' + C.map(function (c) { return '<div data-actor="' + esc(c.name) + '">' + c.items.map(function (x) { return esc(x.replace(/\|/g, '/')); }).join('|') + '</div>'; }).join('') + '</div>';
+    }
+    if (/사례|이행|전후/.test(nm)) return head + '<div class="tk-cases tk-grow">' + C.map(function (c) {
+      var fr = c.items[0] || '', to = c.items[1] || '';
+      if (c.items.length === 1 && /→/.test(fr)) { var sp = fr.split(/\s*→\s*/); fr = sp[0]; to = sp.slice(1).join(' → '); }
+      return '<div class="tk-case"><b>' + esc(c.name) + '</b><span class="tk-from">' + esc(fr) + '</span><span class="tk-to">' + esc(to) + '</span></div>';
+    }).join('') + '</div>';
+    if (/평가표|하비|신호등/.test(nm)) {
+      var crit = list(kv['기준']);
+      return head + '<table class="tk-table"><thead><tr><th>구분</th>' + crit.map(function (c) { return '<th>' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' + C.map(function (c, i) {
+        return '<tr' + (i === ki ? ' class="tk-key"' : '') + '><th>' + esc(c.name) + '</th>' + crit.map(function (cr, j) { var it = c.items.find(function (x) { return x.indexOf(cr) === 0; }) || c.items[j] || ''; var g = it.replace(new RegExp('^' + cr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[:：]?\\s*'), ''); var m = /^(상|중|하|높음|보통|낮음|●|◐|○)\s*(.*)$/.exec(g); return '<td class="c">' + (m ? BALL(m[1]) + (m[2] ? '<br><small>' + esc(m[2].replace(/^[—\-–]\s*/, '')) + '</small>' : '') : esc(g)) + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</tbody></table>';
+    }
+    if (/^표/.test(nm)) {
+      var hd = list(kv['머리']);
+      return head + '<table class="tk-table">' + (hd.length ? '<thead><tr>' + hd.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead>' : '') + '<tbody>' + C.map(function (c, i) { return '<tr' + (/합계|계$/.test(c.name) ? ' class="tk-total"' : '') + '><th>' + esc(c.name) + '</th>' + c.items.map(function (x) { var isN = /^[+\-]?[\d,.]+\s*(%|억|원|개|명)?(\s*\(.*\))?$/.test(x); return '<td class="' + (isN ? 'n' : '') + (hasKey(x, s.key) ? ' tk-focus' : '') + '">' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
+    }
+    if (/역할|라벨/.test(nm)) return head + '<div class="tk-roles tk-grow">' + C.map(function (c, i) { return '<div' + (i === ki ? ' class="tk-key"' : '') + '><b>' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    if (/카드|병렬/.test(nm)) return head + '<div class="tk-cards tk-grow">' + C.map(function (c, i) { return '<div class="tk-card' + (i === ki ? ' tk-key' : /기존|현행|전통|AS-IS|평균/.test(c.name) ? ' tk-gray' : '') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    return null;
+  }
+  function drawData(d, s, used) {
+    var nm = d.name, kv = d.kv, vals = list(kv['값']);
+    var head = unitHead(d, '');
+    if (/수치|타일|KPI|근거묶음|큰수치/i.test(nm)) {
+      var dir = vals.length > 3 ? '' : '';
+      return head + '<div class="tk-evidence tk-grow">' + vals.map(function (v) {
+        var f = firstNum(v) || { big: v, label: '' }, dl = /\(([+\-][^)]*)\)\s*$/.exec(f.label), lab = dl ? f.label.slice(0, dl.index).trim() : f.label;
+        var key = s.key && (v.indexOf(s.key) >= 0 || s.key.indexOf(f.big) >= 0) && !used.ev;
+        if (key) used.ev = 1;
+        return '<div class="tk-ev' + (key ? ' tk-key' : '') + '"><span class="tk-big">' + esc(f.big) + (dl ? '<span class="tk-delta' + (/^-/.test(dl[1]) ? ' tk-down' : '') + '">' + esc(dl[1]) + '</span>' : '') + '</span><b>' + esc(lab) + '</b></div>';
+      }).join('') + '</div>' + (kv['결론'] ? '<div class="tk-concl">' + esc(kv['결론']) + '</div>' : '');
+    }
+    if (/워터폴|브리지/.test(nm)) {
+      var steps = vals.map(function (v, i) { if (/=\s*$/.test(v) || i === vals.length - 1 && /목표|결과|끝/.test(v) && !lastNum(v)) return [v.replace(/=\s*$/, '').trim(), null, 'end']; var ln = lastNum(v) || { label: v, value: 0 }; return [ln.label, ln.value, i === 0 ? 'base' : (i === vals.length - 1 && !/^[+\-]/.test(ln.raw) ? 'end' : (ln.value < 0 ? 'down' : 'up'))]; });
+      var base = steps[0][1] || 0, mn = base, lv = base; steps.slice(1).forEach(function (x) { if (x[2] === 'up' || x[2] === 'down') { lv += x[1]; mn = Math.min(mn, lv); } });
+      var floor = Math.max(0, Math.floor(mn * 0.85 / Math.pow(10, Math.floor(Math.log10(Math.max(1, mn))) - 1)) * Math.pow(10, Math.floor(Math.log10(Math.max(1, mn))) - 1));
+      return head + '<div class="tk-wf tk-chart tk-fill" data-floor="' + floor + '" data-steps=\'' + JSON.stringify(steps).replace(/'/g, '&#39;') + '\'></div>';
+    }
+    if (/깔때기|퍼널/.test(nm)) return head + '<ol class="tk-funnel tk-grow">' + vals.map(function (v) { var ln = lastNum(v) || { label: v, raw: '' }; return '<li><b>' + esc(ln.label) + '<span>' + esc(ln.raw) + '</span></b><ul class="tk-list"><li>' + esc(ln.label) + '</li></ul></li>'; }).join('') + '</ol>';
+    if (/묶음|누적|꺾은선|추이선|복합|콤보/.test(nm)) {
+      var cats = list(kv['축']), ser = list(kv['계열']).map(function (x) { var nums = x.match(/[+\-]?[\d,]+(?:\.\d+)?%?/g) || []; var name = x.replace(/[+\-]?[\d,]+(?:\.\d+)?%?/g, '').replace(/\s+/g, ' ').trim(); return { name: name.replace(/\(선\)/, '').trim(), values: nums.map(function (q) { return +q.replace(/[,%]/g, ''); }), labels: nums, kind: /\(선\)/.test(name) || (/꺾은선|추이선/.test(nm)) ? 'line' : 'bar' }; });
+      var type = /누적/.test(nm) ? 'stack' : /꺾은선|추이선/.test(nm) ? 'line' : 'group';
+      var keyc = cats.indexOf(kv['강조'] || '');
+      return head + '<div class="tk-plot tk-chart tk-fill" data-type="' + type + '"' + (keyc >= 0 ? ' data-key="' + keyc + '"' : '') + ' data-cats=\'' + JSON.stringify(cats).replace(/'/g, '&#39;') + '\' data-series=\'' + JSON.stringify(ser).replace(/'/g, '&#39;') + '\'></div>';
+    }
+    if (/막대/.test(nm)) {
+      var items = vals.map(function (v) { var ln = lastNum(v); if (!ln) return null; var k = (kv['강조'] && v.indexOf(kv['강조']) >= 0) || (s.key && v.indexOf(s.key) >= 0) ? 'key' : (/목표|\(G\)/.test(v) ? 'target' : 'prior'); return [ln.label, ln.value, k, ln.raw]; }).filter(Boolean);
+      if (!items.some(function (x) { return x[2] === 'key' || x[2] === 'target'; }) && items.length) items.forEach(function (x) { x[2] = 'navy'; });
+      return head + '<div class="tk-bars tk-chart tk-fill"' + (/가로/.test(nm) || items.some(function (x) { return x[0].length > 6; }) ? ' data-dir="h"' : '') + ' data-items=\'' + JSON.stringify(items).replace(/'/g, '&#39;') + '\'></div>';
+    }
+    if (/일정|로드맵|간트/.test(nm)) {
+      var per = list(kv['기간']), ms = list(kv['관문']);
+      var rows = (s._ganttCells || []).map(function (c) {
+        var m = /\(([^~)]+)\s*[~∼-]\s*([^)]+)\)/.exec(c.items.join(' ')) || /\(([^)]+)\)/.exec(c.items.join(' '));
+        var f = m ? per.indexOf(m[1].trim()) + 1 : 1, to = m && m[2] ? per.indexOf(m[2].trim()) + 1 : f;
+        return '<div data-task="' + esc(c.name) + '" data-from="' + Math.max(1, f) + '" data-to="' + Math.max(f, to) + '">' + esc(c.items.join(' ').replace(/\([^)]*\)/, '').trim()) + '</div>';
+      });
+      ms.forEach(function (x) { var p = per.findIndex(function (q) { return x.indexOf(q) === 0; }); if (p >= 0) rows.push('<div data-task="관문" data-at="' + (p + 1) + '">' + esc(x.slice(per[p].length).trim()) + '</div>'); });
+      return head + '<div class="tk-gantt tk-grow" data-periods="' + esc(per.join(',')) + '">' + rows.join('') + '</div>';
+    }
+    return null;
+  }
+  function isDataDesign(d) { return d && /수치|타일|KPI|근거묶음|큰수치|워터폴|브리지|깔때기|퍼널|막대|꺾은선|추이선|복합|콤보/i.test(d.name); }
+  function body(s, idx) {
+    var main = design(s.dmain), aux = design(s.daux), used = {};
+    var mainCells = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); });
+    var auxCells = s.cells.filter(function (c) { return /^\[근거\]/.test(c.name); }).map(function (c) { return { name: c.name.replace(/^\[근거\]\s*/, ''), items: c.items }; });
+    if (!main && !aux) return bodyAuto(s, idx);
+    var mainHtml = null, auxHtml = '';
+    if (main) {
+      if (/일정|로드맵|간트/.test(main.name)) { s._ganttCells = mainCells; mainHtml = drawData(main, s, used); }
+      else mainHtml = isDataDesign(main) ? drawData(main, s, used) : draw(main, mainCells, s, used);
+      if (isDataDesign(main) && mainCells.length) auxCells = mainCells.concat(auxCells);
+    }
+    if (!mainHtml) mainHtml = bodyAuto(Object.assign({}, s, { cells: mainCells, band: '', imp: '' }), idx, true);
+    if (aux) {
+      if (isDataDesign(aux)) auxHtml = drawData(aux, s, used) || '';
+      else if (auxCells.length) auxHtml = draw(aux, auxCells, s, used) || '';
+    }
+    if (!auxHtml && auxCells.length && !(main && !isDataDesign(main) && !mainCells.length)) auxHtml = '<div class="tk-roles">' + auxCells.map(function (c) { return '<div><b>' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    var out = '<div class="tk-mainwrap"><div class="tk-main">' + mainHtml + '</div>' + (auxHtml ? '<div class="tk-aux">' + auxHtml + '</div>' : '') + '</div>';
+    out += bandHtml(s);
+    return { html: out, auto: true };
+  }
+  function bandHtml(s) {
+    var out = '', band = s.band.split(/\s*→\s*/)[0];
+    if (band) out += '<div class="tk-band"><b>' + (/사례/.test(band) ? '사례' : /추세|증가|확산/.test(band) ? '추세' : /한계|단,|다만/.test(band) ? '유의' : '근거') + '</b><p>' + esc(band) + '</p></div>';
+    if (s.imp) out += '<div class="tk-band tk-green"><b>시사</b><p>' + esc(s.imp) + '</p></div>';
+    return out;
+  }
   /* ── 3. HTML 만들기 ─────────────────────── */
   function build(deck) {
     var h = [];
@@ -207,7 +347,7 @@
     }
     deck.slides.forEach(function (s, i) {
       var subs = s.subs.map(function (x) { return '<p class="tk-sub' + (x.kind === '실행' ? ' tk-do' : '') + '">' + esc(x.kind === '실행' && !/^☞/.test(x.text) ? '☞ ' + x.text : x.text) + '</p>'; }).join('');
-      h.push('<section class="tk-slide"><h2 class="tk-title">' + esc(s.title) + '</h2><div class="tk-lead">' + (s.lead ? '<p class="tk-lead-main">' + esc(s.lead) + '</p>' : '') + subs + '</div><div class="tk-body">' + body(s, i) + '</div>' +
+      h.push('<section class="tk-slide"><h2 class="tk-title">' + esc(s.title) + '</h2><div class="tk-lead">' + (s.lead ? '<p class="tk-lead-main">' + esc(s.lead) + '</p>' : '') + subs + '</div>' + (function () { var bd = body(s, i); return typeof bd === 'string' ? '<div class="tk-body">' + bd + '</div>' : '<div class="tk-body tk-auto" style="flex-direction:column">' + bd.html + '</div>'; })() +
         (s.note ? '<p class="tk-note">' + esc(/^출처/.test(s.note) ? s.note : '출처 : ' + s.note) + '</p>' : '') + '</section>');
     });
     return docOf(title, h.join('\n'));
