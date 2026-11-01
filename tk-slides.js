@@ -9,6 +9,7 @@
   };
   function el(tag, attrs, html) {
     var e = document.createElement(tag);
+    if (tag === 'img') e.crossOrigin = 'anonymous';
     for (var k in attrs || {}) e.setAttribute(k, attrs[k]);
     if (html != null) e.innerHTML = html;
     return e;
@@ -147,9 +148,227 @@
     if (!c.querySelector('.tk-tree-img')) c.insertBefore(el('img', { class: 'tk-tree-img', src: IMG('cover-tree.png'), alt: '' }), c.firstChild);
     if (c.getAttribute('data-wordmark') !== 'no' && !c.querySelector('.tk-mark')) c.appendChild(el('img', { class: 'tk-mark', src: IMG('nongshimtaekyung-wordmark.png'), alt: '농심태경' }));
     if (!c.querySelector('.tk-logos')) c.appendChild(el('div', { class: 'tk-logos' },
-      '<img src="' + IMG('qtaste-emblem.png') + '" alt="Qtaste"><img src="' + IMG('borntaste-emblem.png') + '" alt="BORN TASTE"><img src="' + IMG('veggiegarden-emblem.png') + '" alt="베지가든" style="height:58px">'));
+      '<img crossorigin="anonymous" src="' + IMG('qtaste-emblem.png') + '" alt="Qtaste"><img crossorigin="anonymous" src="' + IMG('borntaste-emblem.png') + '" alt="BORN TASTE"><img crossorigin="anonymous" src="' + IMG('veggiegarden-emblem.png') + '" alt="베지가든" style="height:58px">'));
     if (!c.querySelector('.tk-tagline')) c.appendChild(el('p', { class: 'tk-tagline' }, 'Global Agility &amp; Growth'));
   }
+  /* 장식 요소를 실제 요소로 넣음 — 화면과 PPT 내보내기가 같은 모양을 쓰게 */
+  function decorate() {
+    document.querySelectorAll('.tk-slide, .tk-toc').forEach(function (s) {
+      if (!s.querySelector(':scope > .tk-rule')) s.insertBefore(el('div', { class: 'tk-rule' }), s.firstChild);
+    });
+    document.querySelectorAll('.tk-shift').forEach(function (s) {
+      if (!s.querySelector(':scope > .tk-tri')) s.appendChild(el('div', { class: 'tk-tri', 'data-shape': 'tri-r' }));
+    });
+    document.querySelectorAll('.tk-chain > .tk-node + .tk-node').forEach(function (n) {
+      if (!n.querySelector(':scope > .tk-arrow')) n.appendChild(el('div', { class: 'tk-arrow', 'data-shape': 'tri-r' }));
+    });
+    document.querySelectorAll('.tk-tree').forEach(function (t) {
+      if (!t.querySelector(':scope > .tk-tree-link')) t.appendChild(el('div', { class: 'tk-tree-link' }));
+      var br = t.querySelector(':scope > .tk-branches');
+      if (br && !br.querySelector(':scope > .tk-vline')) br.insertBefore(el('div', { class: 'tk-vline' }), br.firstChild);
+      t.querySelectorAll('.tk-branch').forEach(function (b) {
+        if (!b.querySelector(':scope > .tk-hline')) b.appendChild(el('div', { class: 'tk-hline' }));
+      });
+    });
+    document.querySelectorAll('.tk-matrix').forEach(function (m) {
+      if (!m.querySelector(':scope > .tk-axis-y')) m.appendChild(el('div', { class: 'tk-axis-y' }, m.getAttribute('data-y') || ''));
+      if (!m.querySelector(':scope > .tk-axis-x')) m.appendChild(el('div', { class: 'tk-axis-x' }, m.getAttribute('data-x') || ''));
+    });
+    document.querySelectorAll('.tk-steps > li > .tk-h').forEach(function (h, i) {
+      h.setAttribute('data-shape', h.parentNode === h.parentNode.parentNode.firstElementChild ? 'homePlate' : 'chevron');
+    });
+    document.querySelectorAll('.tk-roof').forEach(function (r) { r.setAttribute('data-shape', 'trapezoid'); });
+    document.querySelectorAll('.tk-funnel > li > b').forEach(function (b) { b.setAttribute('data-shape', 'trapezoid-down'); });
+  }
+
+  /* ── PPT 내보내기: 화면의 상자·글자·도식을 편집 가능한 도형으로 옮김 (PptxGenJS) ── */
+  var PPTX_SRC = 'https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
+  function loadLib(cb) {
+    if (window.PptxGenJS) return cb();
+    var s = document.createElement('script');
+    s.src = window.TK_PPTX_SRC || PPTX_SRC;
+    s.onload = cb;
+    s.onerror = function () { alert('PPT 변환 도구를 불러오지 못했습니다. 인터넷 연결을 확인해 주십시오.'); };
+    document.head.appendChild(s);
+  }
+  function hex(c) {
+    var m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/.exec(c || '');
+    if (!m) return null;
+    if (m[4] !== undefined && +m[4] === 0) return null;
+    return [m[1], m[2], m[3]].map(function (v) { var h = Math.round(+v).toString(16); return h.length < 2 ? '0' + h : h; }).join('').toUpperCase();
+  }
+  function pxf(v) { return parseFloat(v) || 0; }
+  var INLINE = { B: 1, STRONG: 1, EM: 1, I: 1, SPAN: 1, SMALL: 1, A: 1, BR: 1, SUP: 1, SUB: 1, U: 1 };
+  function pseudoText(e, which) {
+    var c = getComputedStyle(e, which).content;
+    if (!c || c === 'none' || c === 'normal') return '';
+    if (/counter\(/.test(c)) {
+      var li = e.closest('li'), i = 1, n = li;
+      while (n && (n = n.previousElementSibling)) i++;
+      var tail = /"([^"]*)"\s*$/.exec(c);
+      return i + (tail ? tail[1] : '');
+    }
+    var q = /^"(.*)"$/.exec(c);
+    return q ? q[1].replace(/\\"/g, '"') : '';
+  }
+  function runsOf(node) {
+    var runs = [], nodes = [];
+    function style(e) {
+      var cs = getComputedStyle(e);
+      return { color: hex(cs.color) || '000000', bold: (+cs.fontWeight || 400) >= 600, fontSize: Math.round(pxf(cs.fontSize) * 2) / 2,
+        italic: false, fontFace: /Arial/.test(cs.fontFamily.split(',')[0]) ? 'Arial' : 'Noto Sans KR' };
+    }
+    var pre = pseudoText(node, '::before');
+    if (pre) {
+      var ps = getComputedStyle(node, '::before');
+      var o = style(node); o.color = hex(ps.color) || o.color;
+      runs.push({ text: pre + (/\s$/.test(pre) ? '' : ' '), options: o });
+    }
+    (function walk(n) {
+      Array.prototype.forEach.call(n.childNodes, function (c) {
+        if (c.nodeType === 3) {
+          var tx = c.nodeValue.replace(/\s+/g, ' ');
+          if (tx.trim() || (runs.length && tx === ' ')) { runs.push({ text: tx, options: style(n) }); if (tx.trim()) nodes.push(c); }
+        } else if (c.nodeType === 1 && INLINE[c.tagName] && getComputedStyle(c).display.indexOf('inline') === 0) {
+          if (c.tagName === 'BR') runs.push({ text: '', options: { breakLine: true } });
+          else walk(c);
+        }
+      });
+    })(node);
+    if (runs.length) { runs[0].text = runs[0].text.replace(/^\s+/, ''); runs[runs.length - 1].text = runs[runs.length - 1].text.replace(/\s+$/, ''); }
+    runs = runs.filter(function (r) { return r.text !== '' || (r.options && r.options.breakLine); });
+    runs.nodes = nodes;
+    return runs;
+  }
+  function textRect(nodes) {
+    var u = null, rg = document.createRange();
+    nodes.forEach(function (n) {
+      rg.selectNodeContents(n);
+      Array.prototype.forEach.call(rg.getClientRects(), function (q) {
+        if (q.width < 0.5 && q.height < 0.5) return;
+        if (!u) u = { left: q.left, top: q.top, right: q.right, bottom: q.bottom };
+        else { u.left = Math.min(u.left, q.left); u.top = Math.min(u.top, q.top); u.right = Math.max(u.right, q.right); u.bottom = Math.max(u.bottom, q.bottom); }
+      });
+    });
+    return u;
+  }
+  function exportPPT(btn) {
+    btn.disabled = true; btn.textContent = 'PPT 만드는 중…';
+    loadLib(function () {
+      var deck = document.querySelector('.tk-deck'), oldZoom = deck.style.zoom;
+      deck.style.zoom = '';
+      try {
+        var P = new window.PptxGenJS();
+        P.defineLayout({ name: 'A4L', width: 11.693, height: 8.268 });
+        P.layout = 'A4L';
+        P.title = document.title;
+        var K = 11.693 / 842, S = P.ShapeType || P.shapes;
+        document.querySelectorAll('.tk-cover, .tk-toc, .tk-slide').forEach(function (sl) {
+          var slide = P.addSlide(), B = sl.getBoundingClientRect();
+          function box(r) { return { x: (r.left - B.left) * K, y: (r.top - B.top) * K, w: Math.max(0.01, r.width * K), h: Math.max(0.01, r.height * K) }; }
+          function inside(r) { return r.width > 0.5 && r.height > 0.2 && r.right > B.left && r.left < B.right && r.bottom > B.top && r.top < B.bottom; }
+          function shape(kind, b, opt) {
+            var o = Object.assign({}, b, opt);
+            if (kind === 'tri-r') { var cx = o.x + o.w / 2, cy = o.y + o.h / 2, w = o.w, h = o.h; o.w = h; o.h = w; o.x = cx - h / 2; o.y = cy - w / 2; o.rotate = 90; kind = S.triangle; }
+            else if (kind === 'trapezoid-down') { kind = S.trapezoid; o.flipV = true; }
+            else if (kind === 'trapezoid') kind = S.trapezoid;
+            else if (kind === 'chevron') kind = S.chevron;
+            else if (kind === 'homePlate') kind = S.homePlate;
+            else if (kind === 'line') kind = S.line;
+            else kind = S.rect;
+            slide.addShape(kind, o);
+          }
+          function svg(sv) {
+            sv.querySelectorAll('rect, line, text').forEach(function (g) {
+              var r = g.getBoundingClientRect(); if (!inside(r) && g.tagName !== 'line') return;
+              var b = box(r);
+              if (g.tagName === 'rect') shape('rect', b, { fill: { color: hex(getComputedStyle(g).fill) || 'BFBFBF' }, line: { type: 'none' } });
+              else if (g.tagName === 'line') {
+                var dash = g.getAttribute('stroke-dasharray');
+                shape('line', b, { line: { color: hex(getComputedStyle(g).stroke) || 'A6A6A6', width: 0.75, dashType: dash ? 'dash' : 'solid' } });
+              } else {
+                var cs = getComputedStyle(g), pad = 0.08;
+                slide.addText(g.textContent, { x: b.x - pad, y: b.y - 0.02, w: b.w + pad * 2, h: b.h + 0.04, margin: 0, align: 'center', valign: 'middle',
+                  fontFace: 'Arial', fontSize: pxf(g.getAttribute('font-size')) || 11, bold: (g.getAttribute('font-weight') || '') === '700', color: hex(cs.fill) || '000000', fit: 'none' });
+              }
+            });
+          }
+          (function visit(e) {
+            if (e.nodeType !== 1) return;
+            var cs = getComputedStyle(e);
+            if (cs.display === 'none' || cs.visibility === 'hidden') return;
+            if (e.tagName === 'svg') return svg(e);
+            var r = e.getBoundingClientRect();
+            if (e.tagName === 'IMG') {
+              if (inside(r) && e.src) {
+                var o = box(r);
+                if (cs.objectFit === 'cover' && e.naturalWidth) o.sizing = { type: 'cover', w: o.w, h: o.h };
+                else if (e.naturalWidth) { var ar = e.naturalWidth / e.naturalHeight, bw = o.w, bh = o.h; if (bw / bh > ar) { o.w = bh * ar; o.x += (bw - o.w) / 2; } else { o.h = bw / ar; o.y += (bh - o.h) / 2; } }
+                var data = null;
+                try { var cv = document.createElement('canvas'); cv.width = e.naturalWidth; cv.height = e.naturalHeight; cv.getContext('2d').drawImage(e, 0, 0); data = cv.toDataURL('image/png'); } catch (x) { data = null; }
+                if (data) { o.data = data; slide.addImage(o); }
+              }
+              return;
+            }
+            if (inside(r) || e === sl) {
+              var b = box(r), fill = hex(cs.backgroundColor), kind = e.getAttribute('data-shape');
+              var bw = ['Top', 'Right', 'Bottom', 'Left'].map(function (s) { return cs['border' + s + 'Style'] !== 'none' ? pxf(cs['border' + s + 'Width']) : 0; });
+              var bc = ['Top', 'Right', 'Bottom', 'Left'].map(function (s) { return hex(cs['border' + s + 'Color']); });
+              var uniform = bw[0] > 0 && bw.every(function (v) { return v === bw[0]; }) && bc.every(function (v) { return v === bc[0]; });
+              var outline = cs.outlineStyle !== 'none' && pxf(cs.outlineWidth) > 0 ? { color: hex(cs.outlineColor), width: pxf(cs.outlineWidth) } : null;
+              if (e !== sl && (fill || uniform || outline)) {
+                shape(kind || 'rect', b, { fill: fill ? { color: fill } : { type: 'none' },
+                  line: outline ? outline : uniform ? { color: bc[0] || 'BFBFBF', width: bw[0] } : { type: 'none' } });
+              }
+              if (!uniform) {
+                var t = (r.top - B.top) * K, l = (r.left - B.left) * K;
+                if (bw[0]) shape('rect', { x: l, y: t, w: b.w, h: bw[0] * K }, { fill: { color: bc[0] || 'BFBFBF' }, line: { type: 'none' } });
+                if (bw[2]) shape('rect', { x: l, y: t + b.h - bw[2] * K, w: b.w, h: bw[2] * K }, { fill: { color: bc[2] || 'BFBFBF' }, line: { type: 'none' } });
+                if (bw[3]) shape('rect', { x: l, y: t, w: bw[3] * K, h: b.h }, { fill: { color: bc[3] || 'BFBFBF' }, line: { type: 'none' } });
+                if (bw[1]) shape('rect', { x: l + b.w - bw[1] * K, y: t, w: bw[1] * K, h: b.h }, { fill: { color: bc[1] || 'BFBFBF' }, line: { type: 'none' } });
+              }
+              var runs = runsOf(e);
+              if (runs.length) {
+                var vert = cs.writingMode.indexOf('vertical') === 0;
+                var ctr = cs.textAlign === 'center' || (cs.display.indexOf('flex') >= 0 && (cs.flexDirection.indexOf('column') === 0 ? cs.alignItems === 'center' : cs.justifyContent === 'center'));
+                var right = cs.textAlign === 'right';
+                var lh = pxf(cs.lineHeight);
+                var o2 = { margin: 0, valign: 'top', align: ctr ? 'center' : right ? 'right' : 'left', fit: 'none', wrap: true, paraSpaceBefore: 0, paraSpaceAfter: 0 };
+                if (lh) o2.lineSpacing = lh;
+                var u = textRect(runs.nodes);
+                if (vert || !u) {
+                  var cx2 = b.x + b.w / 2, cy2 = b.y + b.h / 2;
+                  Object.assign(o2, vert ? { w: b.h, h: b.w, x: cx2 - b.h / 2, y: cy2 - b.w / 2, rotate: 270, align: 'center', valign: 'middle' } : b);
+                } else {
+                  if (pseudoText(e, '::before')) {
+                    var ps2 = getComputedStyle(e, '::before');
+                    var start = ps2.position === 'absolute' ? r.left : r.left + pxf(cs.paddingLeft) + Math.min(0, pxf(cs.textIndent));
+                    if (cs.display.indexOf('flex') >= 0) start = r.left + pxf(cs.paddingLeft);
+                    u.left = Math.min(u.left, start);
+                  }
+                  var w = u.right - u.left, slack = Math.max(6, w * 0.06);
+                  var x = u.left - B.left, wid = w + slack;
+                  if (ctr) x -= slack / 2; else if (right) x -= slack;
+                  var lineFix = lh && pxf(cs.fontSize) ? Math.max(0, (lh - pxf(cs.fontSize) * 1.2) / 2) : 0;
+                  Object.assign(o2, { x: x * K, y: (u.top - B.top - lineFix) * K, w: wid * K, h: Math.max(0.12, (u.bottom - u.top + lineFix * 2) * K) });
+                  if ((u.bottom - u.top) < (lh || pxf(cs.fontSize) * 1.4) * 1.5) o2.wrap = false;
+                }
+                slide.addText(runs, o2);
+              }
+            }
+            Array.prototype.forEach.call(e.children, function (c) {
+              if (INLINE[c.tagName] && getComputedStyle(c).display.indexOf('inline') === 0) return;
+              visit(c);
+            });
+          })(sl);
+        });
+        P.writeFile({ fileName: (document.title || 'TK 장표') + '.pptx' }).then(done2, done2);
+      } catch (err) { console.error(err); alert('PPT 변환 중 오류: ' + err.message); done2(); }
+      function done2() { deck.style.zoom = oldZoom; btn.disabled = false; btn.textContent = 'PPT 내보내기'; }
+    });
+  }
+  window.TKExportPPT = function () { exportPPT(document.querySelector('.tk-export') || { set disabled(v) {}, set textContent(v) {} }); };
+
   function zoom() {
     if (window.matchMedia && window.matchMedia('print').matches) return;
     var deck = document.querySelector('.tk-deck');
@@ -165,6 +384,12 @@
       deck = el('main', { class: 'tk-deck' });
       slides[0].parentNode.insertBefore(deck, slides[0]);
       Array.prototype.forEach.call(slides, function (s) { deck.appendChild(s); });
+    }
+    decorate();
+    if (!document.querySelector('.tk-export') && document.body.getAttribute('data-export') !== 'no') {
+      var bt = el('button', { class: 'tk-export', type: 'button' }, 'PPT 내보내기');
+      bt.addEventListener('click', function () { exportPPT(bt); });
+      document.body.appendChild(bt);
     }
     Array.prototype.forEach.call(slides, function (s, i) {
       if (s.classList.contains('tk-cover')) cover(s);

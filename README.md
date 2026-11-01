@@ -7,7 +7,7 @@
 | 파일 | 하는 일 |
 | --- | --- |
 | tk-slides.css | 토큰(색·글꼴·간격) + 부품 15종 디자인 |
-| tk-slides.js | 엠블럼·쪽번호·표지 이미지, 막대·워터폴·일정표 그리기, 넘치면 글자 자동 축소(12→9.5px), 화면 배율 |
+| tk-slides.js | 엠블럼·쪽번호·표지 이미지, 막대·워터폴·일정표 그리기, 넘치면 글자 자동 축소(12→9.5px), 화면 배율, **PPT 내보내기 단추**(편집 가능한 .pptx, A4 가로) |
 | img/ | 베지가든·Qtaste·BORN TASTE 엠블럼, 농심태경 워드마크, 표지 나무 |
 | examples/components.html | 부품 견본 |
 | examples/sample-deck.html | 시험 덱(통찰력 영업 7장) |
@@ -22,6 +22,11 @@
 - jsDelivr는 main 브랜치 파일을 최대 12시간 캐시한다. 고친 뒤 바로 쓰려면 아래 주소를 브라우저에서 한 번 연다.
   - https://purge.jsdelivr.net/gh/captain-lee999/TK-Slides@main/tk-slides.css
   - https://purge.jsdelivr.net/gh/captain-lee999/TK-Slides@main/tk-slides.js
+
+## PPT·구글 슬라이드로 받기
+1. 덱 화면 오른쪽 위 「PPT 내보내기」를 누르면 .pptx가 내려받아진다(PptxGenJS 3.12.0을 jsDelivr에서 불러옴).
+2. 구글 슬라이드가 필요하면 그 .pptx를 구글 드라이브에 올리고 「Google 프레젠테이션으로 열기」.
+3. 상자·글자·도식은 편집 가능한 도형과 글상자로, 막대·워터폴은 도형으로 옮긴다. 글꼴은 Noto Sans KR(구글 슬라이드 기본 제공, PC에 없으면 대체 글꼴).
 
 ## 출처
 - 디자인 기준: TK 디자인시스템(Claude Design) README v4.2, tokens.json, components/bundle.css

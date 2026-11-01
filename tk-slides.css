@@ -151,7 +151,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 
 /* ── 본문 틀(경영계획 마스터 위치) ───────────── */
 .tk-title{position:absolute;left:26px;top:16px;right:80px;margin:0;font-size:20px;line-height:31px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.tk-slide::before{content:"";position:absolute;left:29px;width:750px;top:53px;height:2.45px;background:var(--tk-green);}
+.tk-rule{position:absolute;left:29px;width:750px;top:53px;height:2.45px;background:var(--tk-green);}
 .tk-emblem{position:absolute;left:774px;top:11px;width:50px;height:50px;object-fit:contain;}
 .tk-page{position:absolute;right:20px;bottom:8px;font-family:var(--font-arial);font-size:9px;color:var(--ink-label);}
 .tk-lead{position:absolute;left:50px;right:26px;top:63px;}
@@ -205,7 +205,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 
 /* ② 전환표 tk-shift — 두 열 사이 세로로 긴 회색 삼각형 하나 */
 .tk-shift{position:relative;display:grid;grid-template-columns:var(--shift-label,78px) 1fr 44px 1fr;grid-template-rows:auto;grid-auto-rows:1fr;row-gap:3px;min-height:0;}
-.tk-shift::after{content:"";position:absolute;top:0;bottom:0;left:calc(var(--shift-label,78px) + (100% - var(--shift-label,78px) - 44px)/2 + 6px);width:32px;
+.tk-shift>.tk-tri{position:absolute;top:0;bottom:0;left:calc(var(--shift-label,78px) + (100% - var(--shift-label,78px) - 44px)/2 + 6px);width:32px;
   background:var(--line);clip-path:polygon(0 0,100% 50%,0 100%);}
 .tk-shift>.tk-sr{display:contents;}
 .tk-shift>.tk-sr>*{padding:5px 9px;display:flex;align-items:center;}
@@ -239,27 +239,27 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-chain>.tk-node:last-child>.tk-h{background:var(--tab-green);}
 .tk-chain>.tk-node:last-child{background:var(--green-tint);}
 .tk-chain>.tk-node+.tk-node{margin-left:26px;position:relative;}
-.tk-chain>.tk-node+.tk-node::before{content:"";position:absolute;left:-21px;top:50%;width:16px;height:22px;margin-top:-11px;background:var(--tab-navy);clip-path:polygon(0 0,100% 50%,0 100%);}
+.tk-chain>.tk-node>.tk-arrow{position:absolute;left:-21px;top:50%;width:16px;height:22px;margin-top:-11px;background:var(--tab-navy);clip-path:polygon(0 0,100% 50%,0 100%);}
 .tk-chain>.tk-node.tk-red>.tk-h{background:var(--tab-red);}
 .tk-chain>.tk-node.tk-red{background:var(--red-tint);}
 
 /* ⑤ 분해 트리 tk-tree — 왼쪽 뿌리 1개 → 오른쪽 가지 N개 */
 .tk-tree{display:grid;grid-template-columns:var(--tree-root,150px) 26px 1fr;min-height:0;}
-.tk-tree>.tk-trunk{grid-column:1;display:flex;flex-direction:column;justify-content:center;padding:10px;background:var(--tab-navy);color:var(--on-fill);font-weight:700;text-align:center;font-size:calc(var(--fs) + 2px);}
+.tk-tree>.tk-trunk{grid-column:1;grid-row:1;display:flex;flex-direction:column;justify-content:center;padding:10px;background:var(--tab-navy);color:var(--on-fill);font-weight:700;text-align:center;font-size:calc(var(--fs) + 2px);}
 .tk-tree>.tk-trunk small{display:block;margin-top:6px;font-weight:400;font-size:var(--fs);}
-.tk-tree>.tk-branches{grid-column:3;display:flex;flex-direction:column;gap:5px;position:relative;}
-.tk-tree>.tk-branches::before{content:"";position:absolute;left:-13px;top:14px;bottom:14px;border-left:1.5px solid var(--line-dark);}
+.tk-tree>.tk-branches{grid-column:3;grid-row:1;display:flex;flex-direction:column;gap:5px;position:relative;}
+.tk-branches>.tk-vline{position:absolute;left:-13px;top:14px;bottom:14px;border-left:1.5px solid var(--line-dark);}
 .tk-branch{position:relative;display:grid;grid-template-columns:var(--branch-label,120px) 1fr;flex:1 1 0;min-height:0;}
-.tk-branch::before{content:"";position:absolute;left:-13px;top:50%;width:13px;border-top:1.5px solid var(--line-dark);}
+.tk-branch>.tk-hline{position:absolute;left:-13px;top:50%;width:13px;border-top:1.5px solid var(--line-dark);}
 .tk-branch>b{display:flex;align-items:center;justify-content:center;text-align:center;padding:4px 6px;background:var(--navy-tint);color:var(--tab-navy);}
 .tk-branch>.tk-list{padding:5px 8px;border:var(--hairline) solid var(--line-light);border-left:0;display:flex;flex-direction:column;justify-content:center;}
 .tk-branch.tk-key>b{background:var(--tab-navy);color:var(--on-fill);}
-.tk-tree::after{content:"";grid-column:2;grid-row:1;align-self:center;border-top:1.5px solid var(--line-dark);}
+.tk-tree>.tk-tree-link{grid-column:2;grid-row:1;align-self:center;height:0;border-top:1.5px solid var(--line-dark);}
 
 /* ⑥ 2×2 매트릭스 tk-matrix — data-x / data-y 축 이름 */
 .tk-matrix{position:relative;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;padding:0 0 18px 20px;min-height:0;}
-.tk-matrix::before{content:attr(data-y);position:absolute;left:0;top:0;bottom:18px;width:16px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:1px;text-align:center;font-weight:700;color:var(--ink-label);border-right:1.5px solid var(--line-strong);}
-.tk-matrix::after{content:attr(data-x);position:absolute;left:20px;right:0;bottom:0;height:16px;text-align:center;font-weight:700;color:var(--ink-label);border-top:1.5px solid var(--line-strong);}
+.tk-matrix>.tk-axis-y{position:absolute;display:flex;align-items:center;justify-content:center;left:0;top:0;bottom:18px;width:16px;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:1px;text-align:center;font-weight:700;color:var(--ink-label);border-right:1.5px solid var(--line-strong);}
+.tk-matrix>.tk-axis-x{position:absolute;left:20px;right:0;bottom:0;height:16px;text-align:center;font-weight:700;color:var(--ink-label);border-top:1.5px solid var(--line-strong);}
 .tk-q{padding:7px 9px;background:var(--panel-fill-soft);border:var(--hairline) solid var(--line-light);min-height:0;overflow:hidden;}
 .tk-q>b:first-child{display:block;margin-bottom:3px;color:var(--ink);font-size:calc(var(--fs) + 1px);}
 .tk-q.tk-key{background:var(--green-tint);border:2px solid var(--tab-green);}
@@ -360,7 +360,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-cover .tk-logos img{height:48px;width:auto;}
 
 /* ── 목차 ──────────────────────────────────── */
-.tk-toc::before{content:"";position:absolute;left:29px;width:750px;top:53px;height:2.45px;background:var(--tk-green);}
+
 .tk-toc .tk-title{content:"";}
 .tk-toc .tk-story{position:absolute;left:50px;right:40px;top:76px;padding:12px 16px;background:var(--green-tint);border-left:5px solid var(--tab-green);font-size:16px;line-height:1.45;font-weight:700;color:var(--tab-green);}
 .tk-toc .tk-parts{position:absolute;left:50px;right:40px;top:178px;bottom:40px;display:flex;flex-direction:column;gap:12px;}
@@ -368,3 +368,8 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-toc .tk-part>b{display:flex;align-items:center;padding:8px 12px;background:var(--green-mid);color:var(--on-fill);font-size:15px;border-radius:var(--radius-tab);}
 .tk-toc .tk-part>ol{margin:0;padding:6px 0;list-style:none;font-size:14px;line-height:1.7;border-bottom:var(--hairline) solid var(--line-light);}
 .tk-toc .tk-part>ol>li>i{font-style:normal;font-weight:700;color:var(--green-mid);margin-right:6px;}
+
+/* 내보내기 단추 (인쇄 때 숨김) */
+.tk-export{position:fixed;right:14px;top:12px;z-index:99;padding:8px 14px;border:0;border-radius:6px;background:#1e5a32;color:#fff;font:700 13px var(--font-sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.tk-export[disabled]{background:#7f7f7f;cursor:wait;}
+@media print{.tk-export{display:none;}}
