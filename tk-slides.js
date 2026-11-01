@@ -362,7 +362,13 @@
             });
           })(sl);
         });
-        P.writeFile({ fileName: (document.title || 'TK 장표') + '.pptx' }).then(done2, done2);
+        P.write({ outputType: 'blob' }).then(function (blob) {
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob); a.download = (document.title || 'TK 장표') + '.pptx';
+          document.body.appendChild(a); a.click();
+          setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+          done2();
+        }, function (er) { alert('PPT 저장 중 오류: ' + er); done2(); });
       } catch (err) { console.error(err); alert('PPT 변환 중 오류: ' + err.message); done2(); }
       function done2() { deck.style.zoom = oldZoom; btn.disabled = false; btn.textContent = 'PPT 내보내기'; }
     });

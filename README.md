@@ -6,6 +6,7 @@
 ## 파일
 | 파일 | 하는 일 |
 | --- | --- |
+| make.html | **원고 변환기** — 장표기획 원고(또는 장표생성 HTML)를 붙여 넣으면 TK 덱을 그리고 PPT로 내보냄. 주소: https://captain-lee999.github.io/TK-Slides/make.html (GitHub Pages 켠 뒤) |
 | tk-slides.css | 토큰(색·글꼴·간격) + 부품 15종 디자인 |
 | tk-slides.js | 엠블럼·쪽번호·표지 이미지, 막대·워터폴·일정표 그리기, 넘치면 글자 자동 축소(12→9.5px), 화면 배율, **PPT 내보내기 단추**(편집 가능한 .pptx, A4 가로) |
 | img/ | 베지가든·Qtaste·BORN TASTE 엠블럼, 농심태경 워드마크, 표지 나무 |

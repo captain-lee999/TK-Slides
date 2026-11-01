@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TK 장표 변환기</title>
+<style>
+  :root{--g:#1e5a32;--gm:#4b7545;--gt:#e2efda;--ink:#000;--line:#bfbfbf;}
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Noto Sans KR","Malgun Gothic",sans-serif;background:#f2f2f2;color:var(--ink);}
+  header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:2.45px solid #003300;}
+  header h1{margin:0;font-size:18px;}
+  header p{margin:0;font-size:12px;color:#595959;}
+  main{display:grid;grid-template-columns:minmax(300px,32%) 1fr;gap:12px;padding:12px;height:calc(100vh - 58px);}
+  .pane{display:flex;flex-direction:column;gap:8px;min-height:0;}
+  textarea{flex:1;width:100%;resize:none;padding:10px;font:12.5px/1.5 "Noto Sans KR","Malgun Gothic",monospace;border:1px solid var(--line);border-radius:6px;}
+  .btns{display:flex;flex-wrap:wrap;gap:6px;}
+  button{padding:8px 12px;border:0;border-radius:6px;background:var(--gm);color:#fff;font:700 13px "Noto Sans KR",sans-serif;cursor:pointer;}
+  button.main{background:var(--g);} button.sub{background:#7f7f7f;}
+  #msg{font-size:12px;color:#595959;min-height:18px;}
+  #msg.err{color:#c00000;}
+  iframe{flex:1;width:100%;border:1px solid var(--line);border-radius:6px;background:#e9e9e9;}
+  @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
+</style></head>
+<body>
+<header><div><h1>TK 장표 변환기</h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<main>
+  <div class="pane">
+    <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;  - 실행: ☞ …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
+    <div class="btns">
+      <button class="main" id="go">장표 만들기</button>
+      <button id="open">새 창으로 열기</button>
+      <button id="save">HTML 저장</button>
+      <button class="sub" id="clear">지우기</button>
+    </div>
+    <div id="msg"></div>
+  </div>
+  <div class="pane"><iframe id="view" title="장표 미리보기"></iframe></div>
+</main>
+<script>
+(function () {
+  var KIT = (function () {
+    var here = location.href.replace(/[^\/]*$/, '');
+    if (/^https?:/.test(here) && /github\.io|127\.0\.0\.1|localhost/.test(here)) return here;
+    return 'https://cdn.jsdelivr.net/gh/captain-lee999/TK-Slides@main/';
+  })();
+  var $ = function (id) { return document.getElementById(id); };
+  var last = '';
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function clean(s) { return s.replace(/\*\*(.+?)\*\*/g, '$1').replace(/`/g, '').trim(); }
+
+  /* ── 1. 원고 읽기 ───────────────────────── */
+  function parse(text) {
+    var lines = text.replace(/\r/g, '').split('\n');
+    var deck = { cover: null, toc: null, slides: [] }, cur = null, mode = null, sub = null;
+    lines.forEach(function (raw) {
+      var line = raw.replace(/\t/g, '    ');
+      if (/^\s*---+\s*$/.test(line)) return;
+      var h = /^\s*#{2,4}\s*(.+)$/.exec(line);
+      if (h) {
+        var t = clean(h[1]);
+        mode = null;
+        if (/^\[?\s*표지\s*\]?/.test(t)) {
+          var m = /^\[?\s*표지\s*\]?\s*[:：]?\s*(.*)$/.exec(t), title = m[1], subt = '';
+          var p = /\(\s*부제\s*[:：]\s*(.+)\)\s*$/.exec(title);
+          if (p) { subt = p[1]; title = title.slice(0, p.index).trim(); }
+          deck.cover = { title: title, sub: subt }; cur = deck.cover; return;
+        }
+        if (/^\[?\s*목차\s*\]?/.test(t)) { deck.toc = { story: '', parts: [] }; cur = deck.toc; return; }
+        var b = /^본문\s*\d+\s*[:：]\s*(.+)$/.exec(t) || /^(.+)$/.exec(t);
+        cur = { title: b[1].replace(/\s*-\s*(?=\d)/, '-').replace(/\s+/g, ' '), lead: '', subs: [], struct: '', cells: [], key: '', band: '', note: '', imp: '' };
+        deck.slides.push(cur); return;
+      }
+      if (!cur) return;
+      if (!line.trim()) { if (mode === 'body') sub = 'gap'; return; }
+      var ind = (/^(\s*)/.exec(line)[1] || '').length;
+      var item = /^\s*(?:[-*•]|\d+[.)])\s+(.*)$/.exec(line);
+      var txt = clean(item ? item[1] : line);
+      var kv = /^([가-힣 ]{2,8})\s*[:：]\s*(.*)$/.exec(txt);
+      if (cur === deck.toc) {
+        if (kv && /스토리/.test(kv[1])) { deck.toc.story = kv[2]; return; }
+        var part = /^([ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]+\.?\s*[^:：/]+?)\s*(?:[:：]\s*(.*))?$/.exec(txt);
+        if (part) {
+          var items = part[2] ? part[2].split(/\s*\/\s*/) : [];
+          deck.toc.parts.push({ name: part[1].trim(), items: items.map(function (s) { return s.replace(/^\d+\.\s*/, ''); }) });
+          return;
+        }
+        if (deck.toc.parts.length) deck.toc.parts[deck.toc.parts.length - 1].items.push(txt.replace(/^(\d+\.\s*)+/, ''));
+        return;
+      }
+      if (cur === deck.cover) return;
+      var KNOWN = /^(리드|서브메시지|본문구조|본문|강조|받침|출처|시사점|물음|연결|근거|실행)$/;
+      if (kv && !KNOWN.test(kv[1].replace(/\s/g, ''))) kv = null;
+      if (kv && mode === 'body' && /^(근거|실행)$/.test(kv[1].replace(/\s/g, ''))) kv = null;
+      if (kv) {
+        var k = kv[1].replace(/\s/g, ''), v = kv[2];
+        if (mode === 'sub' && /^(근거|실행)$/.test(k)) { if (v && !/^없음$/.test(v)) cur.subs.push({ kind: k, text: v }); return; }
+        mode = null;
+        if (k === '리드') cur.lead = v.replace(/^✓\s*/, '');
+        else if (k === '서브메시지') { mode = 'sub'; if (v && !/^없음$/.test(v)) cur.subs.push({ kind: /^☞/.test(v) ? '실행' : '근거', text: v }); }
+        else if (k === '본문구조') cur.struct = v;
+        else if (k === '본문') { mode = 'body'; sub = 'gap'; if (v) cur.cells.push({ name: v, items: [] }); }
+        else if (k === '강조') cur.key = v;
+        else if (k === '받침') cur.band = v;
+        else if (k === '출처') cur.note = v.replace(/^※\s*/, '');
+        else if (k === '시사점') cur.imp = v.replace(/^☞\s*/, '');
+        return;
+      }
+      if (mode === 'sub') { cur.subs.push({ kind: /^☞/.test(txt) ? '실행' : '근거', text: txt }); return; }
+      if (mode === 'body') { (cur._raw = cur._raw || []).push({ txt: txt, ind: ind, gap: sub === 'gap' }); sub = null; }
+    });
+    deck.slides.forEach(function (s) {
+      var raw = s._raw || [];
+      if (!raw.length) return;
+      var base = Math.min.apply(null, raw.map(function (r) { return r.ind; }));
+      var indented = raw.some(function (r) { return r.ind > base; });
+      raw.forEach(function (r, i) {
+        var lastCell = s.cells[s.cells.length - 1], isName;
+        if (indented) isName = r.ind === base;
+        else isName = !lastCell || r.gap || (r.txt.length <= 18 && !/\d/.test(r.txt) && lastCell.items.length >= 2);
+        if (isName) s.cells.push({ name: r.txt, items: [] });
+        else (lastCell || (s.cells.push({ name: '', items: [] }), s.cells[0])).items.push(r.txt);
+      });
+    });
+    deck.slides.forEach(function (s) { s.cells = s.cells.filter(function (c) { return c.name || c.items.length; }); });
+    return deck;
+  }
+
+  /* ── 2. 부품 고르기 ─────────────────────── */
+  function rel(s) {
+    var t = s.struct || '';
+    var name = /^(포함|인과|순차|비교대칭|전이|위계|대비|비교)/.exec(t);
+    return { kind: name ? name[1] : '', desc: t };
+  }
+  function hasKey(text, key) { return key && text.indexOf(key.replace(/^[「『]|[」』]$/g, '')) >= 0; }
+  function markPt(text, key) {
+    var t = esc(text);
+    if (!key) return t;
+    var num = /[\d,.]+\s*(%|배|억|원|명|개|건|년|일)?/.exec(key);
+    if (num && t.indexOf(esc(num[0])) >= 0) return t.replace(esc(num[0]), '<em class="tk-pt">' + esc(num[0]) + '</em>');
+    return t;
+  }
+  function li(items, key, used) {
+    return '<ul class="tk-list">' + items.map(function (x) {
+      var nm = /^([^:：]{2,14})\s*[:：]\s*(.+)$/.exec(x), head = '', rest = x;
+      if (nm) { head = '<b>' + esc(nm[1]) + '</b> '; rest = nm[2]; }
+      var html = (!used.pt && hasKey(rest, key)) ? (used.pt = true, markPt(rest, key)) : esc(rest);
+      return '<li>' + head + html + '</li>';
+    }).join('') + '</ul>';
+  }
+  function keyIdx(s) {
+    var k = s.key || '', i;
+    for (i = 0; i < s.cells.length; i++) if (k && (s.cells[i].name && k.indexOf(s.cells[i].name) >= 0 || s.cells[i].name.indexOf(k) >= 0)) return i;
+    for (i = 0; i < s.cells.length; i++) if (s.cells[i].items.some(function (x) { return hasKey(x, k); })) return i;
+    return -1;
+  }
+  function body(s, idx) {
+    var r = rel(s), C = s.cells, n = C.length, ki = keyIdx(s), used = {}, out = '';
+    var desc = r.desc;
+    if (!n) return '';
+    if (/두\s*축|2\s*[×x]\s*2|사분면|매트릭스/.test(desc) && n === 4) {
+      out = '<div class="tk-matrix tk-grow" data-x="' + esc((/가로[:：]?\s*([^,/]+)/.exec(desc) || [, ''])[1]) + '" data-y="' + esc((/세로[:：]?\s*([^,/]+)/.exec(desc) || [, ''])[1]) + '">' +
+        C.map(function (c, i) { return '<div class="tk-q' + (i === ki ? ' tk-key' : '') + '"><b>' + esc(c.name) + '</b>' + esc(c.items.join(' / ')) + '</div>'; }).join('') + '</div>';
+    } else if (/비교대칭|대비|비교/.test(r.kind) && n === 2) {
+      var a = C[0].items, b = C[1].items, rows = Math.max(a.length, b.length);
+      if (a.length === b.length) {
+        out = '<div class="tk-shift tk-nolabel tk-grow"><div class="tk-sr tk-sh"><span></span><span>' + esc(C[0].name) + '</span><span>' + esc(C[1].name) + '</span></div>';
+        for (var i = 0; i < rows; i++) out += '<div class="tk-sr' + (i === rows - 1 && ki === 1 ? ' tk-key' : '') + '"><span></span><span>' + markPt(a[i] || '', '') + '</span><span>' + (hasKey(b[i] || '', s.key) && !used.pt ? (used.pt = 1, markPt(b[i], s.key)) : esc(b[i] || '')) + '</span></div>';
+        out += '</div>';
+      } else {
+        out = '<div class="tk-cards tk-grow"><div class="tk-card tk-gray"><div class="tk-h">' + esc(C[0].name) + '</div>' + li(a, s.key, used) + '</div><div class="tk-card' + (ki === 1 ? ' tk-key' : '') + '"><div class="tk-h">' + esc(C[1].name) + '</div>' + li(b, s.key, used) + '</div></div>';
+      }
+    } else if (/순차/.test(r.kind)) {
+      out = '<ol class="tk-steps tk-num tk-grow">' + C.map(function (c) { return '<li><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</li>'; }).join('') + '</ol>';
+    } else if (/인과|전이/.test(r.kind)) {
+      out = '<div class="tk-chain tk-grow">' + C.map(function (c, i) { return '<div class="tk-node' + (i === n - 1 && /위험|감소|하락|축소|손실|실패|한계|전락|위기/.test(c.name + c.items.join('')) ? ' tk-red' : '') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    } else if (/위계/.test(r.kind)) {
+      if (n >= 3 && /목표|비전/.test(C[0].name) && /기반|역량|토대/.test(C[n - 1].name)) {
+        out = '<div class="tk-house tk-grow"><div class="tk-roof">' + esc(C[0].name + (C[0].items.length ? ' — ' + C[0].items.join(' / ') : '')) + '</div><div class="tk-pillars">' +
+          C.slice(1, -1).map(function (c) { return '<div><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') +
+          '</div><div class="tk-base">' + esc(C[n - 1].name + (C[n - 1].items.length ? ' — ' + C[n - 1].items.join(' / ') : '')) + '</div></div>';
+      } else out = '<div class="tk-layers tk-grow">' + C.map(function (c) { return '<div><b>' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    } else if (/포함/.test(r.kind) && /분해|하위|상위|구성/.test(desc) && n >= 2) {
+      out = '<div class="tk-tree tk-grow"><div class="tk-trunk">' + esc(s.title.replace(/^[ⅠⅡⅢⅣⅤ\d\-.\s]+/, '')) + '</div><div class="tk-branches">' +
+        C.map(function (c, i) { return '<div class="tk-branch' + (i === ki ? ' tk-key' : '') + '"><b>' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div></div>';
+    } else if (n >= 4 || (n >= 2 && C.every(function (c) { return c.items.length <= 1; }))) {
+      out = '<div class="tk-roles tk-grow">' + C.map(function (c, i) { return '<div' + (i === ki ? ' class="tk-key"' : '') + '><b>' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    } else {
+      out = '<div class="tk-cards tk-grow">' + C.map(function (c, i) { return '<div class="tk-card' + (i === ki ? ' tk-key' : '') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    }
+    var band = s.band.split(/\s*→\s*/)[0];
+    if (band) out += '<div class="tk-band"><b>' + (/사례/.test(band) ? '사례' : /추세|증가|확산/.test(band) ? '추세' : '근거') + '</b><p>' + esc(band) + '</p></div>';
+    if (s.imp) out += '<div class="tk-band tk-green"><b>시사</b><p>' + esc(s.imp) + '</p></div>';
+    return out;
+  }
+
+  /* ── 3. HTML 만들기 ─────────────────────── */
+  function build(deck) {
+    var h = [];
+    var title = deck.cover ? deck.cover.title : (deck.slides[0] ? deck.slides[0].title : 'TK 장표');
+    if (deck.cover) {
+      var parts = deck.cover.sub.split(/\s*[·|]\s*/), date = '', subt = deck.cover.sub;
+      if (parts.length > 1 && /\d/.test(parts[parts.length - 1])) { date = parts.pop(); subt = parts.join(' · '); }
+      h.push('<section class="tk-cover"><h1>' + esc(deck.cover.title) + '</h1>' + (subt ? '<p class="tk-csub">' + esc(subt) + '</p>' : '') +
+        '<p class="tk-date">' + esc(date || new Date().getFullYear() + '. ' + (new Date().getMonth() + 1)) + '</p><p class="tk-dept">영업본부 영업기획팀</p></section>');
+    }
+    if (deck.toc) {
+      h.push('<section class="tk-toc"><h2 class="tk-title">목 차</h2>' + (deck.toc.story ? '<p class="tk-story">' + esc(deck.toc.story) + '</p>' : '') + '<div class="tk-parts">' +
+        deck.toc.parts.map(function (p) { return '<div class="tk-part"><b>' + esc(p.name) + '</b><ol>' + p.items.map(function (x) { var m = /^(\d+)\.\s*(.*)$/.exec(x); return '<li>' + (m ? '<i>' + m[1] + '.</i>' + esc(m[2]) : esc(x)) + '</li>'; }).join('') + '</ol></div>'; }).join('') + '</div></section>');
+    }
+    deck.slides.forEach(function (s, i) {
+      var subs = s.subs.map(function (x) { return '<p class="tk-sub' + (x.kind === '실행' ? ' tk-do' : '') + '">' + esc(x.kind === '실행' && !/^☞/.test(x.text) ? '☞ ' + x.text : x.text) + '</p>'; }).join('');
+      h.push('<section class="tk-slide"><h2 class="tk-title">' + esc(s.title) + '</h2><div class="tk-lead">' + (s.lead ? '<p class="tk-lead-main">' + esc(s.lead) + '</p>' : '') + subs + '</div><div class="tk-body">' + body(s, i) + '</div>' +
+        (s.note ? '<p class="tk-note">' + esc(/^출처/.test(s.note) ? s.note : '출처 : ' + s.note) + '</p>' : '') + '</section>');
+    });
+    return docOf(title, h.join('\n'));
+  }
+  function docOf(title, inner) {
+    return '<!doctype html>\n<html lang="ko"><head><meta charset="utf-8"><title>' + esc(title) + '</title>\n<link rel="stylesheet" href="' + KIT + 'tk-slides.css">\n<script src="' + KIT + 'tk-slides.js" defer><\/script>\n</head><body>\n' + inner + '\n</body></html>';
+  }
+  function fixHtml(code) {
+    code = code.replace(/^[\s\S]*?(<!doctype|<html)/i, '$1').replace(/```[\s\S]*$/, '');
+    return code.replace(/https:\/\/cdn\.jsdelivr\.net\/gh\/[^"']+?\/(tk-slides\.(css|js))/g, KIT + '$1');
+  }
+  function show(html) {
+    last = html;
+    $('view').srcdoc = html;
+  }
+  $('go').onclick = function () {
+    var t = $('src').value.trim(), m = $('msg');
+    m.className = '';
+    if (!t) { m.textContent = '원고를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
+    if (/<!doctype|<html|<section/i.test(t)) { show(fixHtml(t)); m.textContent = 'HTML 코드를 그대로 열었습니다.'; return; }
+    var d = parse(t);
+    if (!d.slides.length) { m.textContent = '「### 본문 1 : …」 같은 장 머리를 찾지 못했습니다. 장표기획 원고 전체를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
+    show(build(d));
+    var miss = d.slides.filter(function (s) { return !s.cells.length; }).length;
+    m.textContent = '표지 ' + (d.cover ? 1 : 0) + ' · 목차 ' + (d.toc ? 1 : 0) + ' · 본문 ' + d.slides.length + '장을 만들었습니다.' + (miss ? ' 본문이 비어 있는 장 ' + miss + '개 — 원고의 「본문:」 줄을 확인해 주십시오.' : '');
+  };
+  $('open').onclick = function () { if (!last) return; var w = window.open(URL.createObjectURL(new Blob([last], { type: 'text/html' })), '_blank'); if (!w) $('msg').textContent = '팝업이 막혔습니다. 「HTML 저장」을 써 주십시오.'; };
+  $('save').onclick = function () {
+    if (!last) return;
+    var a = document.createElement('a'), t = (/<title>([^<]*)<\/title>/.exec(last) || [, 'TK 장표'])[1];
+    a.href = URL.createObjectURL(new Blob([last], { type: 'text/html' })); a.download = t + '.html'; a.click();
+  };
+  $('clear').onclick = function () { $('src').value = ''; $('view').srcdoc = ''; last = ''; $('msg').textContent = ''; };
+  window.TKMake = { parse: parse, build: build };
+})();
+</script>
+</body></html>

@@ -370,6 +370,9 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-toc .tk-part>ol>li>i{font-style:normal;font-weight:700;color:var(--green-mid);margin-right:6px;}
 
 /* 내보내기 단추 (인쇄 때 숨김) */
-.tk-export{position:fixed;right:14px;top:12px;z-index:99;padding:8px 14px;border:0;border-radius:6px;background:#1e5a32;color:#fff;font:700 13px var(--font-sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.tk-export{position:fixed;right:14px;bottom:14px;z-index:99;padding:8px 14px;border:0;border-radius:6px;background:#1e5a32;color:#fff;font:700 13px var(--font-sans);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.3);}
 .tk-export[disabled]{background:#7f7f7f;cursor:wait;}
 @media print{.tk-export{display:none;}}
+/* 전환표 차원 칸 없는 형 */
+.tk-shift.tk-nolabel{--shift-label:0px;column-gap:0;}
+.tk-shift.tk-nolabel>.tk-sr>:nth-child(1){padding:0;visibility:hidden;}
