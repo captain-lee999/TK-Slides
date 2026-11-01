@@ -112,8 +112,15 @@
     });
   }
 
+  var BOXOV = '.tk-main, .tk-aux, .tk-card, .tk-list, .tk-pillars > div, .tk-node, .tk-q, .tk-branch, .tk-roles > div, .tk-lc, .tk-sr > span, td, th, .tk-cnode, .tk-spoke, .tk-ev, .tk-steps > li, .tk-case > span, .tk-sum, .tk-facts > div';
   function overflowing(body) {
     if (body.scrollHeight > body.clientHeight + 2) return true;
+    var br = body.getBoundingClientRect(), bx = body.querySelectorAll(BOXOV);
+    for (var q = 0; q < bx.length; q++) {
+      var b = bx[q];
+      if (b.scrollHeight > b.clientHeight + 3 && (b.clientHeight > 0 || b.matches('.tk-main, .tk-aux'))) return true;
+      var r = b.getBoundingClientRect(); if (r.bottom > br.bottom + 2 || r.right > br.right + 2) return true;
+    }
     var all = body.querySelectorAll('*');
     for (var i = 0; i < all.length; i++) {
       var e = all[i];
@@ -314,6 +321,29 @@
       var img = el('img', { class: 'tk-ico', src: icoSrc(nm, col), alt: '' });
       h.insertBefore(img, h.firstChild);
     });
+  }
+  /* 가장 작은 글자에서도 넘치면 근거 도식을 다음 장 「(계속)」으로 나눔 */
+  function splitOver() {
+    var made = false;
+    document.querySelectorAll('.tk-slide[data-overflow="yes"]').forEach(function (s) {
+      var aux = s.querySelector('.tk-mainwrap > .tk-aux');
+      if (!aux || !aux.children.length || s.classList.contains('tk-cont')) return;
+      var c = s.cloneNode(true);
+      c.classList.add('tk-cont'); c.removeAttribute('data-overflow'); c.removeAttribute('data-layout');
+      var t = c.querySelector('.tk-title'); if (t) t.textContent = t.textContent + ' (계속)';
+      c.querySelectorAll('.tk-mainwrap > .tk-main, .tk-facts').forEach(function (x) { x.remove(); });
+      c.querySelectorAll('.tk-page').forEach(function (x) { x.remove(); });
+      s.querySelectorAll('.tk-mainwrap > .tk-aux, .tk-band').forEach(function (x) { x.remove(); });
+      s.removeAttribute('data-overflow');
+      s.parentNode.insertBefore(c, s.nextSibling); made = true;
+    });
+    if (!made) return;
+    var all = document.querySelectorAll('.tk-cover, .tk-toc, .tk-slide');
+    all.forEach(function (s, i) { var p = s.querySelector('.tk-page'); if (s.classList.contains('tk-cover')) return; if (!p) { p = el('span', { class: 'tk-page' }); s.appendChild(p); } p.textContent = String(i + 1); });
+    var main = Array.prototype.filter.call(all, function (s) { return s.classList.contains('tk-slide') && !s.classList.contains('tk-cont'); });
+    var us = document.querySelectorAll('.tk-toc li > u');
+    if (us.length === main.length) us.forEach(function (u, i) { u.textContent = String(Array.prototype.indexOf.call(all, main[i]) + 1); });
+    document.querySelectorAll('.tk-slide').forEach(function (s) { drawAll(s); layout(s); });
   }
   /* TK v4.2: 진한 면(진녹·진남)은 한 장에 1곳 — 결론(tk-key)·지붕을 남기고 나머지는 중간톤으로 */
   var DARK = { 'rgb(30, 90, 50)': 'g', 'rgb(31, 73, 125)': 'n' };
@@ -649,11 +679,14 @@
     document.querySelectorAll('.tk-lanes').forEach(lanes);
     drawAll(document);
     document.querySelectorAll('.tk-slide').forEach(layout);
+    splitOver();
     document.querySelectorAll('.tk-slide').forEach(oneDark);
     zoom();
     window.addEventListener('resize', zoom);
     setTimeout(function () {
       document.querySelectorAll('.tk-slide').forEach(layout);
+      splitOver();
+      document.querySelectorAll('.tk-slide').forEach(oneDark);
       window.TK_SLIDES_READY = true;
     }, 350);
   }
