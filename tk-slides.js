@@ -220,15 +220,17 @@
       if (stack) svg.appendChild(sv('text', { x: x0 + gw / 2, y: H - bot - acc - 5, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: C.ink }, fmt(bars.reduce(function (a, s) { return a + numv(s.values[ci]); }, 0))));
       svg.appendChild(sv('text', { x: slot * ci + slot / 2, y: H - 5, 'text-anchor': 'middle', 'font-size': 11, fill: ci === key ? C.ink : C.label, 'font-weight': ci === key ? 700 : 400, 'font-family': 'Noto Sans KR' }, c));
     });
+    var allL = [].concat.apply([], lines.map(function (s) { return s.values.map(numv); }));
     lines.forEach(function (s, li) {
-      var vals = s.values.map(numv), mx = Math.max.apply(null, vals), mn = Math.min.apply(null, vals);
+      var vals = s.values.map(numv), mx = Math.max.apply(null, bars.length ? vals : allL), mn = Math.min.apply(null, bars.length ? vals : allL);
       var lo = bars.length ? mn - (mx - mn) * 0.6 : Math.min(0, mn), hi = mx + (mx - lo) * 0.15 || 1;
       var pts = vals.map(function (v, ci) { return [slot * ci + slot / 2, top + 6 + (ph - 12) * (1 - (v - lo) / (hi - lo || 1))]; });
       var col = s.color || (bars.length ? '#c0504d' : PAL[li % PAL.length]);
       for (var k = 0; k < pts.length - 1; k++) svg.appendChild(sv('line', { x1: pts[k][0], y1: pts[k][1], x2: pts[k + 1][0], y2: pts[k + 1][1], stroke: col, 'stroke-width': 2.2 }));
       pts.forEach(function (p, ci) {
         svg.appendChild(sv('circle', { cx: p[0], cy: p[1], r: 3.6, fill: '#fff', stroke: col, 'stroke-width': 2 }));
-        svg.appendChild(sv('text', { x: p[0], y: p[1] - 8, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: col }, s.labels && s.labels[ci] ? s.labels[ci] : fmt(s.values[ci])));
+        var below = !bars.length && lines.some(function (o) { return o !== s && numv(o.values[ci]) > vals[ci]; });
+        svg.appendChild(sv('text', { x: p[0], y: below ? p[1] + 17 : p[1] - 8, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: col }, s.labels && s.labels[ci] ? s.labels[ci] : fmt(s.values[ci])));
       });
     });
     svg.appendChild(sv('line', { x1: 0, x2: W, y1: H - bot, y2: H - bot, stroke: C.line, 'stroke-width': 1 }));
@@ -571,10 +573,40 @@
           (function visit(e) {
             if (e.nodeType !== 1) return;
             if (e.classList && e.classList.contains('tk-mk')) return;
+            if (e.classList && e.classList.contains('tk-legend') && window.TK_NATIVE_CHART !== false && e.parentNode && e.parentNode.querySelector('.tk-plot')) return;
             var cs = getComputedStyle(e);
             if (cs.display === 'none' || cs.visibility === 'hidden') return;
             if (e.tagName === 'svg' || e.tagName === 'SVG') return svg(e);
             var r = e.getBoundingClientRect();
+            /* 막대·묶음·누적·꺾은선·복합 차트는 PPT 기본 차트로 (편집 가능) */
+            if (e.classList && (e.classList.contains('tk-bars') || e.classList.contains('tk-plot')) && window.TK_NATIVE_CHART !== false) {
+              var cr = e.getBoundingClientRect(); if (!inside(cr)) return;
+              var cb = box(cr), CT = P.ChartType || P.charts, hx = function (c) { return (c || '#1f497d').replace('#', '').toUpperCase(); };
+              var base = { x: cb.x, y: cb.y, w: cb.w, h: cb.h, showLegend: false, showValue: true, dataLabelFontSize: 10, dataLabelFontFace: 'Arial', dataLabelColor: '000000',
+                catAxisLabelFontSize: 9, catAxisLabelFontFace: 'Noto Sans KR', catAxisLabelColor: '404040', valAxisHidden: true, valGridLine: { style: 'none' }, catGridLine: { style: 'none' },
+                catAxisLineShow: true, catAxisLineColor: 'A6A6A6', showTitle: false };
+              try {
+                if (e.classList.contains('tk-bars')) {
+                  var its = parse(e.getAttribute('data-items')) || [], labs = its.map(function (x) { return String(x[0]); });
+                  var ser = its.map(function (x, i) { return { name: String(x[0]), labels: labs, values: its.map(function (y, k) { return k === i ? (+x[1] || 0) : null; }) }; });
+                  slide.addChart(CT.bar, ser, Object.assign(base, { barDir: e.getAttribute('data-dir') === 'h' ? 'bar' : 'col', barGrouping: 'stacked', overlap: 100, barGapWidthPct: 60,
+                    chartColors: its.map(function (x) { return hx(C[x[2] || 'navy'] || x[2]); }), dataLabelPosition: 'inEnd', dataLabelColor: 'FFFFFF' }));
+                } else {
+                  var cats = parse(e.getAttribute('data-cats')) || [], sers = parse(e.getAttribute('data-series')) || [], ty = e.getAttribute('data-type') || 'group';
+                  var num = function (v) { return typeof v === 'number' ? v : parseFloat(String(v).replace(/[^\d.\-]/g, '')) || 0; };
+                  var mk = function (s) { return { name: s.name, labels: cats, values: (s.values || []).map(num) }; };
+                  var bars = sers.filter(function (s) { return s.kind !== 'line'; }), lines = sers.filter(function (s) { return s.kind === 'line'; });
+                  var cols = sers.map(function (s, i) { return hx(PAL[i % PAL.length]); });
+                  Object.assign(base, { showLegend: sers.length > 1, legendPos: 't', legendFontSize: 9, legendFontFace: 'Noto Sans KR' });
+                  if (ty === 'line') slide.addChart(CT.line, sers.map(mk), Object.assign(base, { chartColors: cols, lineSize: 2, lineDataSymbol: 'circle', lineDataSymbolSize: 6, dataLabelPosition: 't' }));
+                  else if (lines.length && bars.length) slide.addChart([{ type: CT.bar, data: bars.map(mk), options: { barGrouping: ty === 'stack' ? 'stacked' : 'clustered', chartColors: cols.slice(0, bars.length) } },
+                    { type: CT.line, data: lines.map(mk), options: { chartColors: cols.slice(bars.length), secondaryValAxis: true, secondaryCatAxis: true, lineDataSymbol: 'circle' } }],
+                    Object.assign(base, { valAxes: [{ showValAxisTitle: false, valAxisHidden: true }, { showValAxisTitle: false, valAxisHidden: true, valGridLine: { style: 'none' } }], catAxes: [{ catAxisTitle: '' }, { catAxisHidden: true }] }));
+                  else slide.addChart(CT.bar, bars.map(mk), Object.assign(base, { barDir: 'col', barGrouping: ty === 'stack' ? 'stacked' : 'clustered', chartColors: cols, dataLabelPosition: ty === 'stack' ? 'ctr' : 'outEnd' }));
+                }
+                return;
+              } catch (x) { /* 기본 차트 실패 시 도형으로 그림 */ }
+            }
             if (e.tagName === 'IMG') {
               if (inside(r) && e.src) {
                 var o = box(r);

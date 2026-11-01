@@ -227,7 +227,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-steps>li:nth-child(3)>.tk-h{background:var(--flow-3);}
 .tk-steps>li:nth-child(n+4)>.tk-h{background:var(--green-mid);color:var(--on-fill);}
 .tk-steps>li:last-child>.tk-h{background:var(--tab-green);color:var(--on-fill);}
-.tk-steps>li>.tk-list{flex:1 1 auto;margin-top:4px;padding:7px 8px;background:var(--panel-fill-soft);border-top:2px solid var(--green-mid);}
+.tk-steps>li>.tk-list{flex:1 1 auto;margin-top:4px;padding:8px 10px;background:var(--panel-fill-soft);}
 .tk-steps.tk-num>li>.tk-h{counter-increment:st;} .tk-steps.tk-num{counter-reset:st;}
 .tk-steps.tk-num>li>.tk-h::before{content:counter(st) ". ";}
 
@@ -273,7 +273,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-pillars>div{flex:1 1 0;display:flex;flex-direction:column;border:var(--hairline) solid var(--line);border-top:0;min-width:0;}
 .tk-pillars>div>.tk-h{border-radius:0;}
 .tk-pillars>div>.tk-list{padding:6px 8px;flex:1 1 auto;background:var(--green-tint);}
-.tk-base{padding:6px 10px;background:var(--green-tint);color:var(--tab-green);font-weight:700;text-align:center;border-top:2px solid var(--tab-green);}
+.tk-base{padding:7px 10px;background:var(--green-tint);color:var(--tab-green);font-weight:700;text-align:center;}
 
 /* ⑧ 층 띠 tk-layers — 위계(위가 가장 진함) */
 .tk-layers{display:flex;flex-direction:column;gap:4px;min-height:0;}
@@ -294,14 +294,14 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 
 /* ⑩ 근거 묶음 tk-evidence — 큰 수치 + 이름 + 풀이 */
 .tk-evidence{display:flex;gap:var(--gap);min-height:0;}
-.tk-ev{flex:1 1 0;display:flex;flex-direction:column;min-width:0;background:var(--navy-tint);border-top:3px solid var(--navy-mid);padding:7px 9px;}
-.tk-ev>.tk-big{font-family:var(--font-arial);font-size:26px;line-height:1.05;font-weight:700;color:var(--tab-navy);}
-.tk-ev>.tk-big small{font-size:13px;}
-.tk-ev>b{margin:3px 0 4px;color:var(--ink);font-size:calc(var(--fs) + 1px);}
+.tk-ev{flex:1 1 0;display:flex;flex-direction:column;justify-content:center;min-width:0;background:var(--navy-tint);padding:10px 14px;}
+.tk-ev>.tk-big{font-family:var(--font-arial);font-size:38px;line-height:1;font-weight:700;color:var(--tab-navy);white-space:nowrap;letter-spacing:-.5px;}
+.tk-ev>.tk-big small{font-size:15px;margin-left:2px;}
+.tk-ev>b{margin:6px 0 2px;color:var(--ink-label);font-size:calc(var(--fs) + 0.5px);line-height:1.3;}
 .tk-ev>.tk-list>li{color:var(--ink-soft);}
-.tk-ev.tk-key{background:var(--tab-navy);border-top-color:var(--tab-navy-deep);}
+.tk-ev.tk-key{background:var(--tab-navy);}
 .tk-ev.tk-key>.tk-big{color:var(--amber-point);} .tk-ev.tk-key>b,.tk-ev.tk-key>.tk-list>li,.tk-ev.tk-key>.tk-list>li::before{color:var(--on-fill);}
-.tk-ev.tk-red{background:var(--red-tint);border-top-color:var(--tab-red);} .tk-ev.tk-red>.tk-big{color:var(--red-ink);}
+.tk-ev.tk-red{background:var(--red-tint);} .tk-ev.tk-red>.tk-big{color:var(--red-ink);}
 
 /* ⑪ 깔때기 tk-funnel */
 .tk-funnel{display:flex;flex-direction:column;gap:3px;min-height:0;}
@@ -311,7 +311,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-funnel>li>b span{font-family:var(--font-arial);font-size:16px;}
 .tk-funnel>li:nth-child(1)>b{--i:0;background:var(--flow-2);color:var(--tab-green);} .tk-funnel>li:nth-child(2)>b{--i:1;background:var(--flow-3);color:var(--tab-green);}
 .tk-funnel>li:nth-child(3)>b{--i:2;} .tk-funnel>li:nth-child(4)>b{--i:3;} .tk-funnel>li:last-child>b{background:var(--tab-green);color:var(--on-fill);}
-.tk-funnel>li>.tk-list{padding:4px 8px;border-left:2px solid var(--green-mid);display:flex;flex-direction:column;justify-content:center;}
+.tk-funnel>li>.tk-list{padding:4px 8px;background:var(--panel-fill-soft);display:flex;flex-direction:column;justify-content:center;}
 
 /* ⑫ 표 tk-table — 평가·비교 표(머리 연녹) */
 .tk-table{width:100%;border-collapse:collapse;font-size:var(--fs);line-height:1.3;}
@@ -488,12 +488,12 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-list li.tk-meter::before{display:none;}
 .tk-list li.tk-meter>i{display:block;height:9px;background:linear-gradient(90deg,var(--tab-navy) var(--v),var(--gray-tint,#e9e9e9) var(--v));}
 .tk-list li.tk-meter>b{font-family:var(--font-arial);color:var(--tab-navy);}
-.tk-sum{flex:none;margin-top:auto;padding:5px 9px;background:var(--green-tint);border-top:1.5px solid var(--tab-green);font-weight:700;color:var(--tab-green);font-size:calc(var(--fs) - 0.5px);line-height:1.3;}
+.tk-sum{flex:none;margin-top:auto;padding:6px 10px;background:var(--green-tint);font-weight:700;color:var(--tab-green);font-size:calc(var(--fs) - 0.5px);line-height:1.3;}
 .tk-roles .tk-sum,.tk-branch .tk-sum{background:var(--navy-tint);border-color:var(--tab-navy);color:var(--tab-navy);}
 .tk-red .tk-sum,.tk-sum.tk-red{background:var(--red-tint);border-color:var(--red-ink);color:var(--red-ink);}
 .tk-pillars>div,.tk-steps>li,.tk-chain>.tk-node,.tk-card{display:flex;flex-direction:column;}
 .tk-roles>div>.tk-sum,.tk-layers>div>.tk-sum{grid-column:2;}
-.tk-facts{flex:none;display:flex;align-items:stretch;margin-top:var(--gap);border-top:1.5px solid var(--tab-navy);border-bottom:var(--hairline) solid var(--line);}
+.tk-facts{flex:none;display:flex;align-items:stretch;margin-top:var(--gap);background:#f7f9fc;}
 .tk-facts>.tk-fl{flex:none;display:flex;align-items:center;justify-content:center;width:86px;padding:4px 6px;background:var(--navy-tint);color:var(--tab-navy);text-align:center;font-size:calc(var(--fs) - 1px);}
 .tk-facts>div{flex:1 1 0;min-width:0;padding:4px 9px;border-left:var(--hairline) solid var(--line-light);font-size:calc(var(--fs) - 1.5px);line-height:1.3;}
 .tk-facts>div>b{display:block;color:var(--tab-navy);font-size:calc(var(--fs) - 1px);}
@@ -515,3 +515,10 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-table.tk-action tbody td:last-child::before{content:"";}
 .tk-table.tk-action tbody td:last-child{font-weight:700;color:var(--tab-green);}
 .tk-table tbody tr:nth-child(even) td{background-color:#fafafa;}
+
+/* 디자인 점검 v3.6: 수치·단위 줄바꿈 금지, 카드 간격 일정, 표 본문 왼쪽 정렬 */
+.tk-n,.tk-stat>b,.tk-pt{white-space:nowrap;}
+.tk-table td{text-align:left;}
+.tk-table td.c{text-align:center;}
+.tk-evidence>.tk-ev:only-child{flex-direction:row;align-items:center;gap:14px;justify-content:flex-start;}
+.tk-main>.tk-chart,.tk-aux>.tk-chart{min-height:150px;}
