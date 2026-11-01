@@ -507,3 +507,11 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-dim{background:var(--green-mid)!important;}
 .tk-dim.tk-navyface{background:var(--navy-mid)!important;}
 .tk-list li.tk-stat>b{color:var(--tab-navy);}
+
+/* 실행 과제 표(머리에 담당): 과제 열 중녹 띠, 담당 열 둥근 꼬리표 */
+.tk-table.tk-action tbody th{background:var(--green-mid);color:var(--on-fill);text-align:left;padding-left:10px;}
+.tk-table.tk-action tbody td:first-of-type{background:var(--navy-tint);color:var(--tab-navy);font-weight:700;}
+.tk-table.tk-action tbody td:last-child{text-align:center;}
+.tk-table.tk-action tbody td:last-child::before{content:"";}
+.tk-table.tk-action tbody td:last-child{font-weight:700;color:var(--tab-green);}
+.tk-table tbody tr:nth-child(even) td{background-color:#fafafa;}

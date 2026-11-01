@@ -139,6 +139,7 @@
     slide.removeAttribute('data-overflow');
     slide.style.setProperty('--fs', fs + 'px');
     slide.style.setProperty('--gap', '8px');
+    slide.style.removeProperty('--lh');
     while (overflowing(body) && fs > 9.5) {
       fs -= 0.5;
       slide.style.setProperty('--fs', fs + 'px');
@@ -146,9 +147,9 @@
     }
     /* 빈 면이 많으면 글자를 키워 면을 채움(최대 14px) */
     if (fs === 12 && slide.getAttribute('data-grow') !== 'no') {
-      while (fs < 14 && emptiness(body).empty > 0.28) {
-        fs += 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px');
-        if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); break; }
+      while (fs < 15 && emptiness(body).empty > 0.24) {
+        fs += 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.38 + (fs - 12) * 0.06).toFixed(2));
+        if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.38 + (fs - 12) * 0.06).toFixed(2)); break; }
       }
     }
     slide.setAttribute('data-fs', fs);
@@ -458,8 +459,8 @@
   function pxf(v) { return parseFloat(v) || 0; }
   var INLINE = { B: 1, STRONG: 1, EM: 1, I: 1, SPAN: 1, SMALL: 1, A: 1, BR: 1, SUP: 1, SUB: 1, U: 1 };
   function pseudoText(e, which) {
-    var c = getComputedStyle(e, which).content;
-    if (!c || c === 'none' || c === 'normal') return '';
+    var pcs = getComputedStyle(e, which), c = pcs.content;
+    if (!c || c === 'none' || c === 'normal' || pcs.display === 'none') return '';
     if (/counter\(/.test(c)) {
       var li = e.closest('li'), i = 1, n = li;
       while (n && (n = n.previousElementSibling)) i++;
@@ -487,6 +488,9 @@
         if (c.nodeType === 3) {
           var tx = c.nodeValue.replace(/\s+/g, ' ');
           if (tx.trim() || (runs.length && tx === ' ')) { runs.push({ text: tx, options: style(n) }); if (tx.trim()) nodes.push(c); }
+        } else if (c.nodeType === 1 && c.classList && c.classList.contains('tk-mk')) {
+          var mo = style(n); mo.color = hex(getComputedStyle(c).backgroundColor) || hex(getComputedStyle(c).color) || mo.color; mo.bold = true;
+          var g = c.textContent.trim(); runs.push({ text: (g === '!' ? '❗' : g) + ' ', options: mo }); nodes.push(c.firstChild || c);
         } else if (c.nodeType === 1 && INLINE[c.tagName] && getComputedStyle(c).display.indexOf('inline') === 0) {
           if (c.tagName === 'BR') runs.push({ text: '', options: { breakLine: true } });
           else walk(c);
@@ -566,6 +570,7 @@
           }
           (function visit(e) {
             if (e.nodeType !== 1) return;
+            if (e.classList && e.classList.contains('tk-mk')) return;
             var cs = getComputedStyle(e);
             if (cs.display === 'none' || cs.visibility === 'hidden') return;
             if (e.tagName === 'svg' || e.tagName === 'SVG') return svg(e);
