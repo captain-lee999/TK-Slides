@@ -37,7 +37,8 @@
       var v = +it[1] || 0, kind = it[2] || 'navy', lab = it[3] || fmt(v);
       var col = C[kind] || kind;
       if (hz) {
-        var lw = Math.min(110, W * 0.3), bh = (H / n) * 0.62, y = (H / n) * i + (H / n - bh) / 2;
+        var maxL = Math.max.apply(null, items.map(function (t) { return String(t[0]).length; }));
+        var lw = Math.min(W * 0.45, Math.max(60, maxL * 11.5 + 10)), bh = Math.min(42, (H / n) * 0.62), y = (H / n) * i + (H / n - bh) / 2;
         var bw = (W - lw - 70) * Math.abs(v) / max;
         svg.appendChild(sv('text', { x: lw - 6, y: y + bh / 2 + 4, 'text-anchor': 'end', 'font-size': 11, fill: C.ink, 'font-family': 'Noto Sans KR' }, it[0]));
         svg.appendChild(sv('rect', { x: lw, y: y, width: Math.max(2, bw), height: bh, fill: col }));
@@ -144,12 +145,13 @@
       fs -= 0.5;
       slide.style.setProperty('--fs', fs + 'px');
       slide.style.setProperty('--gap', Math.max(4, Math.round(fs * 0.6)) + 'px');
+      slide.style.setProperty('--lh', '1.36');
     }
     /* 빈 면이 많으면 글자를 키워 면을 채움(최대 14px) */
     if (fs === 12 && slide.getAttribute('data-grow') !== 'no') {
       while (fs < 15 && emptiness(body).empty > 0.24) {
-        fs += 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.38 + (fs - 12) * 0.06).toFixed(2));
-        if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.38 + (fs - 12) * 0.06).toFixed(2)); break; }
+        fs += 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 12) * 0.05).toFixed(2));
+        if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 12) * 0.05).toFixed(2)); break; }
       }
     }
     slide.setAttribute('data-fs', fs);

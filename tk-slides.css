@@ -134,7 +134,7 @@
   --font-num: Arial, "Noto Sans KR", sans-serif;
   --font-arial: Arial, Helvetica, sans-serif;
   --font-brand: "Nongshim Gothic", "Noto Sans KR", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-}:root{ --fs:12px; --lh:1.38; --gap:8px; }
+}:root{ --fs:12px; --lh:1.45; --gap:10px; }
 
 /* ── 화면·인쇄 ─────────────────────────────── */
 html,body{margin:0;padding:0;background:#e9e9e9;}
@@ -522,3 +522,15 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-table td.c{text-align:center;}
 .tk-evidence>.tk-ev:only-child{flex-direction:row;align-items:center;gap:14px;justify-content:flex-start;}
 .tk-main>.tk-chart,.tk-aux>.tk-chart{min-height:150px;}
+
+/* 디자인 점검 v3.7: 여백·호흡 — 칸 안쪽 여백 키움, 수치 행 좁은 칸에서 줄바꿈, 역할 라벨이 결론까지 덮음 */
+.tk-card>.tk-list,.tk-pillars>div>.tk-list,.tk-chain>.tk-node>.tk-list,.tk-steps>li>.tk-list,.tk-roles>div>.tk-list,.tk-branch>.tk-list{padding:10px 12px;}
+.tk-list>li{margin-top:5px;}
+.tk-list li.tk-stat{flex-wrap:wrap;row-gap:2px;}
+.tk-list li.tk-stat>span{flex:1 1 120px;min-width:0;}
+.tk-roles>div{grid-template-rows:1fr auto;}
+.tk-roles>div>b{grid-row:1 / span 2;}
+.tk-roles>div>.tk-sum{grid-column:2;margin-top:0;}
+.tk-table td small{font-size:calc(var(--fs) - 1px);}
+.tk-sum{padding:7px 12px;}
+.tk-facts>div{padding:6px 12px;}

@@ -20,7 +20,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3.6</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3.7</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;  - 실행: ☞ …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -374,7 +374,8 @@
       if (stg.length >= 2 && stg.length !== n) return head + '<ol class="tk-steps tk-num tk-hdr">' + stg.map(function (x) { return '<li><div class="tk-h">' + esc(x) + '</div></li>'; }).join('') + '</ol>' +
         '<div class="tk-cards tk-grow">' + C.map(function (c, i) { return '<div class="tk-card' + (i === ki ? ' tk-key' : '') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
     }
-    if (/단계|셰브론|프로세스|절차/.test(nm)) return head + '<ol class="tk-steps tk-num tk-grow">' + C.map(function (c) { return '<li><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</li>'; }).join('') + '</ol>';
+    var numbered = C.some(function (c) { return /^\d|^[①-⑳]|\d단계/.test(c.name); });
+    if (/단계|셰브론|프로세스|절차/.test(nm)) return head + '<ol class="tk-steps' + (numbered ? '' : ' tk-num') + ' tk-grow">' + C.map(function (c) { return '<li><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</li>'; }).join('') + '</ol>';
     if (/인과|연쇄|사슬/.test(nm)) return head + '<div class="tk-chain tk-grow">' + C.map(function (c, i) { return '<div class="tk-node' + (i === n - 1 && /위험|감소|하락|축소|손실|실패|한계|전락|위기|악화/.test(c.name) ? ' tk-red' : '') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
     if (/트리|분해/.test(nm)) {
       var root = kv['뿌리'] || kv['상위'] || s.title.replace(/^[ⅠⅡⅢⅣⅤ\d\-.\s]+/, '');
