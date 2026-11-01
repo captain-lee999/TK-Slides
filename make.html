@@ -20,7 +20,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3.1</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3.2</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;  - 실행: ☞ …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -144,6 +144,31 @@
   }
 
 
+  /* 스킬 밖 기획안(「### [슬라이드 N] 제목 / 핵심 메시지: / 주요 내용:」)을 원고 틀에 가깝게 바꿈 */
+  function freeForm(text) {
+    var L = text.replace(/\r/g, '').split('\n'), out = [], first = true, inSlide = false;
+    L.forEach(function (ln) {
+      var h = /^\s*#{2,4}\s*\[?\s*(?:슬라이드|장표|Slide)\s*(\d+)\s*\]?\.?\s*(.*)$/i.exec(ln.replace(/\*\*/g, ''));
+      if (h) {
+        var ttl = h[2].replace(/^[:：.\s]+/, '').trim();
+        if (first && /표지|Title|타이틀/i.test(ttl)) { out.push('### [표지] : '); first = false; inSlide = 'cover'; return; }
+        first = false; inSlide = true; out.push('### 본문 ' + h[1] + ' : ' + ttl.replace(/\s*\([A-Za-z ]+\)/g, '')); return;
+      }
+      if (!inSlide) return;
+      var m = /^\s*[-*•]\s*\*\*([^*:：]+)\*\*\s*[:：]\s*(.*)$/.exec(ln) || /^\s*[-*•]\s*([^:：]{2,14})\s*[:：]\s*(.*)$/.exec(ln);
+      if (inSlide === 'cover') {
+        if (m && /제목/.test(m[1])) out[out.length - 1] = '### [표지] : ' + m[2].trim();
+        else if (m && /부제/.test(m[1])) out[out.length - 1] += ' (부제 : ' + m[2].trim() + ')';
+        return;
+      }
+      if (m && /핵심\s*메시지|결론|메시지/.test(m[1])) { out.push('- 리드: ✓ ' + m[2].trim().replace(/(습니다|입니다|합니다)\.?$/, '').replace(/해야$/, '해야 함')); return; }
+      if (m && /시각화|구성\s*요소|레이아웃|배경|톤|역할|도식/.test(m[1])) return;
+      if (m && /(주요|비교|실행|핵심)\s*(내용|포인트|과제|사례)|주요\s*사례/.test(m[1]) && !m[2]) { out.push('- 본문:'); return; }
+      if (/^\s*---+\s*$/.test(ln) || /드릴까요\?|기획안입니다/.test(ln)) return;
+      if (/^\s*[-*•]\s+/.test(ln)) { if (!/- 본문:/.test(out.join('\n').split('### ').pop())) out.push('- 본문:'); out.push('  ' + ln.trim().replace(/^[*•]/, '-')); }
+    });
+    return out.join('\n');
+  }
   /* 구조화 결과(# 제목 / **핵심 결론:** / ## 절 / > 관계: … · 도식 후보: … / ### ① 묶음 / 표 / **핵심 수치:**)를 바로 장표로 */
   function isStruct(text) { return /^>\s*관계\s*[:：]/m.test(text) || /^\*\*핵심 결론[:：]?\*\*/m.test(text); }
   function parseStruct(text) {
@@ -489,11 +514,13 @@
     m.className = '';
     if (!t) { m.textContent = '원고를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
     if (/<!doctype|<html|<section/i.test(t)) { show(fixHtml(t)); m.textContent = 'HTML 코드를 그대로 열었습니다.'; return; }
-    var d = isStruct(t) ? parseStruct(t) : parse(t);
+    var kind = /^\s*#{2,4}\s*\[?\s*표지/m.test(t) && /^\s*[-*]\s*리드\s*[:：]/m.test(t) ? 'plan' : isStruct(t) ? 'struct' : 'free';
+    var d = kind === 'struct' ? parseStruct(t) : parse(kind === 'free' ? freeForm(t) : t);
     if (!d.slides.length) { m.textContent = '「### 본문 1 : …」 같은 장 머리를 찾지 못했습니다. 장표기획 원고 전체를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
     show(build(d));
     var miss = d.slides.filter(function (s) { return !s.cells.length; }).length;
-    m.textContent = '표지 ' + (d.cover ? 1 : 0) + ' · 목차 ' + (d.toc ? 1 : 0) + ' · 본문 ' + d.slides.length + '장을 만들었습니다.' + (miss ? ' 본문이 비어 있는 장 ' + miss + '개 — 원고의 「본문:」 줄을 확인해 주십시오.' : '');
+    if (kind === 'free') { m.className = 'err'; m.innerHTML = '⚠ 장표기획 스킬 형식이 아닌 원고입니다(첫 줄 「### [표지]」·「리드:」 줄 없음) — 제미나이에서 스킬이 실행되지 않은 답변입니다. 임시로 그렸지만 도식·리드가 빠집니다. <b>새 채팅에서 @ppt-slide-planner를 고르거나, 「장표기획 호출문」을 앞에 붙여</b> 다시 받아 주십시오.'; return; }
+    m.textContent = (kind === 'struct' ? '[구조화 결과] ' : '') + '표지 ' + (d.cover ? 1 : 0) + ' · 목차 ' + (d.toc ? 1 : 0) + ' · 본문 ' + d.slides.length + '장을 만들었습니다.' + (miss ? ' 본문이 비어 있는 장 ' + miss + '개 — 원고의 「본문:」 줄을 확인해 주십시오.' : '');
   };
   $('open').onclick = function () { if (!last) return; var w = window.open(URL.createObjectURL(new Blob([last], { type: 'text/html' })), '_blank'); if (!w) $('msg').textContent = '팝업이 막혔습니다. 「HTML 저장」을 써 주십시오.'; };
   $('save').onclick = function () {
