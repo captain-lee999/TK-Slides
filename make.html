@@ -20,7 +20,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3.1</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;  - 실행: ☞ …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -455,8 +455,16 @@
         '<p class="tk-date">' + esc(date || new Date().getFullYear() + '. ' + (new Date().getMonth() + 1)) + '</p><p class="tk-dept">영업본부 영업기획팀</p></section>');
     }
     if (deck.toc) {
-      h.push('<section class="tk-toc"><h2 class="tk-title">목 차</h2>' + (deck.toc.story ? '<p class="tk-story">' + esc(deck.toc.story) + '</p>' : '') + '<div class="tk-parts">' +
-        deck.toc.parts.map(function (p) { return '<div class="tk-part"><b>' + esc(p.name) + '</b><ol>' + p.items.map(function (x) { var m = /^(\d+)\.\s*(.*)$/.exec(x); return '<li>' + (m ? '<i>' + m[1] + '.</i>' + esc(m[2]) : esc(x)) + '</li>'; }).join('') + '</ol></div>'; }).join('') + '</div></section>');
+      var pg = deck.cover ? 3 : 2, no = 0, parts = deck.toc.parts.filter(function (p) { return p.items.length; });
+      var solo = parts.length === 1 && !/^[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]/.test(parts[0].name);
+      var total = parts.reduce(function (a, p) { return a + p.items.length; }, 0);
+      h.push('<section class="tk-toc' + (solo ? ' tk-solo' : '') + (total > 9 ? ' tk-dense' : '') + '"><h2 class="tk-title">목 차</h2>' +
+        (deck.toc.story ? '<div class="tk-story"><b>핵심 메시지</b><p>' + esc(deck.toc.story) + '</p></div>' : '') + '<div class="tk-parts">' +
+        parts.map(function (p) {
+          var pm = /^([ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]+)\.?\s*(.*)$/.exec(p.name) || [, '', p.name];
+          return '<div class="tk-part" style="flex:' + p.items.length + ' 1 0">' + (solo ? '' : '<div class="tk-pn"><span>' + esc(pm[1]) + '</span><b>' + esc(pm[2]) + '</b></div>') + '<ol>' +
+            p.items.map(function (x) { no++; var m = /^(\d+)\.\s*(.*)$/.exec(x); return '<li><i>' + (no < 10 ? '0' : '') + no + '</i><em>' + esc(m ? m[2] : x) + '</em><s></s><u>' + (pg++) + '</u></li>'; }).join('') + '</ol></div>';
+        }).join('') + '</div></section>');
     }
     deck.slides.forEach(function (s, i) {
       var subs = s.subs.map(function (x) { return '<p class="tk-sub' + (x.kind === '실행' ? ' tk-do' : '') + '">' + esc(x.kind === '실행' && !/^☞/.test(x.text) ? '☞ ' + x.text : x.text) + '</p>'; }).join('');

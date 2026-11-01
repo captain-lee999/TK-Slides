@@ -304,7 +304,7 @@
   }
   /* 묶음 머리에 아이콘 붙임: data-ico="이름|no" 로 바꾸거나 끔 */
   function icons(scope) {
-    if (document.body.getAttribute('data-icons') === 'no') return;
+    if (document.body.getAttribute('data-icons') !== 'on') return; /* TK: 아이콘 세트 없음 — 켜려면 body data-icons="on" */
     scope.querySelectorAll('.tk-card>.tk-h, .tk-pillars>div>.tk-h, .tk-chain>.tk-node>.tk-h, .tk-steps:not(.tk-hdr)>li>.tk-h, .tk-roles>div>b, .tk-layers>div>b, .tk-branch>b, .tk-q>b:first-child, .tk-spoke>b, .tk-cnode>b').forEach(function (h) {
       if (h.querySelector('.tk-ico') || h.closest('[data-icons="no"]')) return;
       var nm = h.getAttribute('data-ico') || icoFor(h.textContent);
@@ -314,6 +314,16 @@
       var img = el('img', { class: 'tk-ico', src: icoSrc(nm, col), alt: '' });
       h.insertBefore(img, h.firstChild);
     });
+  }
+  /* TK v4.2: 진한 면(진녹·진남)은 한 장에 1곳 — 결론(tk-key)·지붕을 남기고 나머지는 중간톤으로 */
+  var DARK = { 'rgb(30, 90, 50)': 'g', 'rgb(31, 73, 125)': 'n' };
+  function oneDark(slide) {
+    var body = slide.querySelector('.tk-body'); if (!body || slide.getAttribute('data-dark') === 'free') return;
+    var faces = [];
+    body.querySelectorAll('*').forEach(function (e) { var k = DARK[getComputedStyle(e).backgroundColor]; if (k && e.getBoundingClientRect().width > 30) faces.push({ e: e, k: k }); });
+    if (faces.length < 2) return;
+    var keep = faces.find(function (f) { return f.e.matches('.tk-roof, .tk-key, .tk-key *'); }) || faces[faces.length - 1];
+    faces.forEach(function (f) { if (f !== keep) { f.e.classList.add('tk-dim'); if (f.k === 'n') f.e.classList.add('tk-navyface'); } });
   }
   function drawAll(scope) {
     scope.querySelectorAll('.tk-bars').forEach(bars);
@@ -639,6 +649,7 @@
     document.querySelectorAll('.tk-lanes').forEach(lanes);
     drawAll(document);
     document.querySelectorAll('.tk-slide').forEach(layout);
+    document.querySelectorAll('.tk-slide').forEach(oneDark);
     zoom();
     window.addEventListener('resize', zoom);
     setTimeout(function () {
