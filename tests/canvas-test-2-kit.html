@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>TK 키트 연결 시험</title>
+<!-- 키트 주소: GitHub captain-lee999/TK-Slides 저장소(main) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/captain-lee999/TK-Slides@main/tk-slides.css">
+<script src="https://cdn.jsdelivr.net/gh/captain-lee999/TK-Slides@main/tk-slides.js" defer></script>
+<style>#chk{font:14px sans-serif;margin:10px auto;max-width:842px;padding:8px 12px;border:2px solid #c00000;}</style>
+</head>
+<body>
+<div id="chk">키트 확인 중…</div>
+<section class="tk-slide">
+  <h2 class="tk-title">키트 연결 시험</h2>
+  <div class="tk-lead">
+    <p class="tk-lead-main">이 장이 TK 양식으로 보이면 키트 CSS가 읽힌 것</p>
+    <p class="tk-sub">오른쪽 위 베지가든 엠블럼과 아래 막대 그래프가 보이면 키트 JS와 로고도 읽힌 것</p>
+  </div>
+  <div class="tk-body">
+    <div class="tk-row tk-grow">
+      <div class="tk-chain tk-w2">
+        <div class="tk-node"><div class="tk-h">CSS</div><ul class="tk-list"><li>제목 녹색 선, 파란 리드</li></ul></div>
+        <div class="tk-node"><div class="tk-h">JS</div><ul class="tk-list"><li>엠블럼, 쪽번호, 막대</li></ul></div>
+      </div>
+      <div class="tk-bars tk-chart" data-items='[["CSS",1,"navy","확인"],["JS",2,"key","확인"]]'></div>
+    </div>
+  </div>
+  <p class="tk-note">출처 : 시험용</p>
+</section>
+<script>
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      var s = document.querySelector('.tk-slide'), css = s && s.offsetWidth === 842, js = window.TK_SLIDES_READY === true;
+      var logo = document.querySelector('.tk-emblem'), img = logo && logo.complete && logo.naturalWidth > 0;
+      var c = document.getElementById('chk');
+      c.style.borderColor = css && js && img ? '#1e5a32' : '#c00000';
+      c.textContent = '키트 CSS ' + (css ? '✅' : '❌') + ' · 키트 JS ' + (js ? '✅' : '❌') + ' · 로고 이미지 ' + (img ? '✅' : '❌');
+    }, 2000);
+  });
+</script>
+</body></html>

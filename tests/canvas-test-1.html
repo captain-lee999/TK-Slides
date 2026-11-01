@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>Canvas 외부 자원 읽기 시험</title>
+<style>
+  body{font-family:sans-serif;margin:16px;background:#fff;color:#000;}
+  h1{font-size:18px;margin:0 0 4px;} p.d{margin:0 0 12px;font-size:13px;color:#555;}
+  table{border-collapse:collapse;width:100%;max-width:760px;font-size:13px;}
+  th,td{border:1px solid #bbb;padding:6px 8px;text-align:left;vertical-align:middle;}
+  th{background:#eaf1dd;} td.r{font-weight:700;white-space:nowrap;}
+  .ok{color:#1e5a32;} .ng{color:#c00000;}
+  #font{font-family:"Noto Sans KR";font-weight:900;font-size:20px;}
+  #img img{height:28px;vertical-align:middle;}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@900&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2.1.1/out/water.min.css" id="extcss">
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.js"></script>
+</head>
+<body>
+<h1>Canvas 외부 자원 읽기 시험</h1>
+<p class="d">결과 칸이 모두 ✅이면 TK 키트를 링크로 불러 쓸 수 있습니다. 「확인 중」에서 바뀌지 않으면 스크립트 실행이 막힌 것입니다.</p>
+<table>
+  <tr><th>번호</th><th>시험 항목</th><th>결과</th><th>뜻</th></tr>
+  <tr><td>1</td><td>문서 안 스크립트 실행</td><td class="r" id="r1">확인 중</td><td>키트의 차트·글자 맞춤 기능이 돌아가는가</td></tr>
+  <tr><td>2</td><td>jsDelivr 외부 CSS 읽기 (npm)</td><td class="r" id="r2">확인 중</td><td>키트 디자인(CSS)을 링크로 불러올 수 있는가</td></tr>
+  <tr><td>3</td><td>jsDelivr 외부 스크립트 읽기 (npm)</td><td class="r" id="r3">확인 중</td><td>키트 기능(JS)을 링크로 불러올 수 있는가</td></tr>
+  <tr><td>4</td><td>jsDelivr GitHub 이미지 읽기 (gh)</td><td class="r" id="r4">확인 중 <span id="img"><img alt="" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@v14.0.2/assets/72x72/1f600.png" onload="window.__img=1" onerror="window.__img=-1"></span></td><td>GitHub에 올린 로고를 불러올 수 있는가</td></tr>
+  <tr><td>5</td><td>Google Fonts 읽기</td><td class="r" id="r5">확인 중</td><td><span id="font">본고딕 굵게 가나다</span> — 이 글자가 아주 굵게 보이면 정상</td></tr>
+</table>
+<p class="d" style="margin-top:12px">이 표의 결과 문구를 그대로 복사해 Claude에게 붙여 주십시오.</p>
+<script>
+  function set(id, ok, msg) { var e = document.getElementById(id); e.className = 'r ' + (ok ? 'ok' : 'ng'); e.firstChild.nodeValue = (ok ? '✅ ' : '❌ ') + msg + ' '; }
+  set('r1', true, '실행됨');
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      var mw = getComputedStyle(document.body).maxWidth;
+      set('r2', mw === '800px', mw === '800px' ? '읽힘' : '안 읽힘');
+      set('r3', typeof window.confetti === 'function', typeof window.confetti === 'function' ? '읽힘' : '안 읽힘');
+      set('r4', window.__img === 1, window.__img === 1 ? '읽힘' : '안 읽힘');
+      var f = document.fonts && document.fonts.check ? document.fonts.check('900 20px "Noto Sans KR"') : false;
+      set('r5', f, f ? '읽힘' : '안 읽힘 또는 확인 불가');
+      try { if (window.confetti) confetti({ particleCount: 40, spread: 50, origin: { y: 0.2 } }); } catch (e) {}
+    }, 1500);
+  });
+</script>
+</body></html>
