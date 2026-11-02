@@ -773,3 +773,54 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-chvb>div>.tk-list,.tk-ccols>div>.tk-list,.tk-tl>.tk-list{margin-bottom:10px;}
 /* 여유 모드: 표 행을 늘리지 않음 */
 .tk-slide.tk-slack .tk-main>.tk-table,.tk-slide.tk-slack .tk-main .tk-table{height:auto;}
+
+/* ── v4.7 글꼴 · 글자 크기(SlideForge 위계 이식) ───────── */
+:root{--font-arial:"Noto Sans KR","Malgun Gothic",sans-serif;}
+.tk-slide,.tk-toc,.tk-cover{font-family:"Noto Sans KR","Malgun Gothic",sans-serif;}
+/* 대제목 16 · 리드 20 · 본문 12(11~14) · 칸 제목 = 본문+3 · 메타 9~10 */
+.tk-title{font-size:16px;}
+.tk-lead-main{font-size:20px;line-height:26px;}
+.tk-sub{font-size:12px;line-height:17px;}
+.tk-card>.tk-h,.tk-pillars>div>.tk-h,.tk-sp>.tk-h,.tk-chvh>b,.tk-g2h>span,.tk-tlh,.tk-vh,.tk-rad>.tk-h,.tk-dc>.tk-h,.tk-rc>.tk-h,.tk-ac>.tk-h,.tk-q>b:first-child,.tk-roles>div>b,.tk-steps>li>.tk-h,.tk-node>.tk-h,.tk-branch>b,.tk-vc>b,.tk-cz>b,.tk-effect>.tk-h,.tk-scr>b,.tk-circ{font-size:calc(var(--fs) + 3px)!important;}
+.tk-table th{font-size:calc(var(--fs) + 1px);}
+.tk-ev>.tk-big{font-size:40px;}
+.tk-mainwrap.tk-hero .tk-ev>.tk-big{font-size:44px!important;}
+.tk-note{font-size:9px;} .tk-page{font-size:9px;}
+.tk-facts>div,.tk-facts>.tk-fl,.tk-road li>span,.tk-road>.tk-fl{font-size:10.5px;}
+.tk-facts>div>b{font-size:11px;}
+
+/* 사실 띠 변주 ② 오른쪽 단 */
+.tk-factcol{display:flex;flex-direction:column;gap:10px;padding:2px 0 0 0;}
+.tk-fch{margin:0 0 2px;font-size:11px;font-weight:700;color:var(--tab-navy);letter-spacing:.5px;}
+.tk-factcol>div{padding:8px 0 0;border-top:1px solid var(--line-light);}
+.tk-factcol>div>b{display:block;font-size:12px;color:var(--tab-navy);}
+.tk-factcol>div>span{font-size:11px;line-height:1.45;color:var(--ink-label);}
+/* 사실 띠 변주 ③ 채움 없는 칩 줄 */
+.tk-fchips{flex:none;margin-top:var(--gap);}
+.tk-fcr{display:flex;gap:0;}
+.tk-fcr>div{flex:1 1 0;min-width:0;padding:2px 14px;border-left:1px solid var(--line-light);}
+.tk-fcr>div:first-child{padding-left:0;border-left:0;}
+.tk-fcr>div>b{display:block;font-size:12px;color:var(--tab-green);}
+.tk-fcr>div>span{font-size:10.5px;line-height:1.4;color:var(--ink-label);}
+
+/* ── v4.7 목차 다시 그림: 채움 없는 편집형 ───────── */
+.tk-toc{padding:74px 50px 34px 50px;gap:22px;}
+.tk-toc .tk-story{display:block;box-shadow:none;padding:0 0 16px;border-bottom:1px solid var(--line-light);}
+.tk-toc .tk-story>b{display:block;padding:0;background:none;color:var(--green-mid);font-size:11px;letter-spacing:2px;margin-bottom:6px;}
+.tk-toc .tk-story>p{padding:0;background:none;font-size:17px;line-height:1.55;font-weight:700;color:var(--tab-green);}
+.tk-toc .tk-parts{flex-direction:row;align-items:stretch;justify-content:stretch;gap:40px;}
+.tk-toc .tk-part{flex:1 1 0!important;display:flex;flex-direction:column;gap:12px;border-top:0;padding-top:0;}
+.tk-toc .tk-pn{flex-direction:row;align-items:baseline;gap:12px;padding:0 0 10px;border-bottom:2px solid var(--tab-green);}
+.tk-toc .tk-pn>span{font-size:34px;font-weight:300;color:var(--green-mid);}
+.tk-toc .tk-pn>b{font-size:15px;color:var(--tab-green);}
+.tk-toc .tk-part>ol>li{flex:none;max-height:none;align-items:baseline;padding:11px 0;font-size:14px;}
+.tk-toc .tk-part>ol>li>i{width:30px;font-size:13px;}
+.tk-toc .tk-part>ol>li>em{flex:1 1 auto;font-weight:500;line-height:1.4;}
+.tk-toc .tk-part>ol>li>s{display:none;}
+.tk-toc .tk-part>ol>li>u{font-size:12px;color:var(--ink-label);}
+.tk-toc.tk-solo .tk-parts,.tk-toc.tk-many .tk-parts{flex-direction:column;gap:18px;}
+.tk-toc.tk-dense .tk-part>ol>li{padding:6px 0;font-size:13px;}
+.tk-toc{justify-content:center;}
+.tk-toc .tk-parts{flex:0 0 auto;}
+.tk-aux:has(>.tk-factcol){justify-content:center;}
+.tk-aux>.tk-factcol{flex:0 0 auto;margin-top:auto;margin-bottom:auto;}

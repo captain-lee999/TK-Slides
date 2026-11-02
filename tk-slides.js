@@ -136,27 +136,27 @@
   function fit(slide) {
     var body = slide.querySelector('.tk-body');
     if (!body) return;
-    var fs = 13;
+    var fs = 12;
     slide.removeAttribute('data-overflow'); slide.classList.remove('tk-slack');
     slide.style.setProperty('--fs', fs + 'px');
     slide.style.setProperty('--gap', '8px');
     slide.style.removeProperty('--lh');
-    while (overflowing(body) && fs > 9.5) {
+    while (overflowing(body) && fs > 10.5) {
       fs -= 0.5;
       slide.style.setProperty('--fs', fs + 'px');
       slide.style.setProperty('--gap', Math.max(4, Math.round(fs * 0.6)) + 'px');
       slide.style.setProperty('--lh', '1.36');
     }
     /* 빈 면이 많으면 글자를 키워 면을 채움(최대 14px) */
-    if (fs === 13 && slide.getAttribute('data-grow') !== 'no') {
-      var cap = emptiness(body).empty > 0.3 ? 18 : 16;
+    if (fs === 12 && slide.getAttribute('data-grow') !== 'no') {
+      var cap = 14;
       while (fs < cap && emptiness(body).empty > 0.1) {
-        fs += 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 13) * 0.04).toFixed(2));
-        if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 13) * 0.04).toFixed(2)); break; }
+        fs += 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 12) * 0.03).toFixed(2));
+        if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 12) * 0.03).toFixed(2)); break; }
       }
     }
     /* 그래도 빈 면이 크면: 도식을 늘리지 않고 내용 높이로 줄인 뒤 남는 높이를 바깥 여백으로 */
-    if (fs >= 13 && slide.getAttribute('data-grow') !== 'no' && emptiness(body).empty > 0.14) {
+    if (fs >= 12 && slide.getAttribute('data-grow') !== 'no' && emptiness(body).empty > 0.14) {
       slide.classList.add('tk-slack');
       if (overflowing(body)) slide.classList.remove('tk-slack');
     }
@@ -425,7 +425,7 @@
     /* 장 구성 다양화: 거의 같은 점수면 바로 앞 장과 다른 방향(위아래 ↔ 좌우 ↔ 왼쪽 받침)을 고름 */
     var dirOf = function (k) { return LAYOUTS[k].dir; };
     if (fixed == null && prevDir) {
-      var compact = !!wrap.querySelector('.tk-aux > .tk-evidence, .tk-aux > .tk-bars, .tk-aux > .tk-plot, .tk-aux > .tk-funnel');
+      var compact = !!wrap.querySelector('.tk-aux > .tk-factcol, .tk-aux > .tk-evidence, .tk-aux > .tk-bars, .tk-aux > .tk-plot, .tk-aux > .tk-funnel');
       var alt = cands.filter(function (c) { return !c.ov && c.s <= best.s + 18 && dirOf(c.i) !== prevDir && (dirOf(c.i) === 'column' || compact); }).sort(function (a, b) { return a.s - b.s; })[0];
       if (alt && dirOf(best.i) === prevDir) best = alt;
     }
@@ -500,7 +500,7 @@
     function style(e) {
       var cs = getComputedStyle(e);
       return { color: hex(cs.color) || '000000', bold: (+cs.fontWeight || 400) >= 600, fontSize: Math.round(pxf(cs.fontSize) * 2) / 2,
-        italic: false, fontFace: /Arial/.test(cs.fontFamily.split(',')[0]) ? 'Arial' : 'Noto Sans KR' };
+        italic: false, fontFace: 'Noto Sans KR' };
     }
     var pre = pseudoText(node, '::before');
     if (pre) {
@@ -590,7 +590,7 @@
               else {
                 var pad = 0.08;
                 slide.addText(g.textContent, { x: b.x - pad, y: b.y - 0.02, w: b.w + pad * 2, h: b.h + 0.04, margin: 0, align: 'center', valign: 'middle', wrap: false,
-                  fontFace: (g.getAttribute('font-family') || '').indexOf('Noto') >= 0 ? 'Noto Sans KR' : 'Arial', fontSize: pxf(g.getAttribute('font-size')) || 11, bold: (g.getAttribute('font-weight') || '') === '700', color: hex(cs.fill) || '000000', fit: 'none' });
+                  fontFace: 'Noto Sans KR', fontSize: pxf(g.getAttribute('font-size')) || 11, bold: (g.getAttribute('font-weight') || '') === '700', color: hex(cs.fill) || '000000', fit: 'none' });
               }
             });
           }
@@ -606,7 +606,7 @@
             if (e.classList && (e.classList.contains('tk-bars') || e.classList.contains('tk-plot')) && window.TK_NATIVE_CHART !== false) {
               var cr = e.getBoundingClientRect(); if (!inside(cr)) return;
               var cb = box(cr), CT = P.ChartType || P.charts, hx = function (c) { return (c || '#1f497d').replace('#', '').toUpperCase(); };
-              var base = { x: cb.x, y: cb.y, w: cb.w, h: cb.h, showLegend: false, showValue: true, dataLabelFontSize: 10, dataLabelFontFace: 'Arial', dataLabelColor: '000000',
+              var base = { x: cb.x, y: cb.y, w: cb.w, h: cb.h, showLegend: false, showValue: true, dataLabelFontSize: 10, dataLabelFontFace: 'Noto Sans KR', dataLabelColor: '000000',
                 catAxisLabelFontSize: 9, catAxisLabelFontFace: 'Noto Sans KR', catAxisLabelColor: '404040', valAxisHidden: true, valGridLine: { style: 'none' }, catGridLine: { style: 'none' },
                 catAxisLineShow: true, catAxisLineColor: 'A6A6A6', showTitle: false };
               try {
