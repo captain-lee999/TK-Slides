@@ -20,7 +20,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3.7</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3.8</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;  - 실행: ☞ …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -126,13 +126,14 @@
         return 0;
       }
       var nMain = fixedN(s.dmain), nAux = fixedN(s.daux);
-      var gapAll = raw.filter(function (r) { return r.gap; }).length > raw.length * 0.5;
+      var gapN = raw.filter(function (r) { return r.gap; }).length, gapAll = gapN > raw.length * 0.5 || gapN <= 1;
       function looksName(x) { return x.length <= 24 && !/[:：→]/.test(x) && !/^[↑↓✓✗●◐○!*\d'’]/.test(x) && !/^결론/.test(x) && !/\d[\d,.]*\s*(%|억|원|명|개|건|배|년)/.test(x); }
       var forced = 0, prevConcl = false;
       raw.forEach(function (r) {
         var lastCell = s.cells[s.cells.length - 1], isName;
         if (indented) isName = r.ind === base;
-        else if (/^\[근거\]/.test(r.txt) || !lastCell) isName = true;
+        else if (/^\[근거\]/.test(r.txt)) isName = true;
+        else if (!lastCell) { if (looksName(r.txt)) isName = true; else { s.cells.push({ name: '', items: [] }); lastCell = s.cells[0]; isName = false; } }
         else if (forced > 0) isName = false;
         else if (prevConcl) isName = true;
         else if (/^\[근거\]/.test(lastCell.name)) isName = false;
@@ -531,18 +532,92 @@
     last = html;
     $('view').srcdoc = html;
   }
+  /* ── 0. 너그럽게 받기: 표기가 흔들린 원고를 표준 원고 틀로 되돌림 ───────── */
+  var DIA = [[/전환표|vs\.?|대비|비교\s*표|AS-?IS|전후\s*비교/i, '전환표'], [/평가\s*표|평가\s*매트릭스|기준\s*비교|득점표/, '평가표'], [/수영\s*레인|스윔|주체별/, '수영 레인'],
+    [/단계|프로세스|플로우|흐름|절차|셰브론|로드맵 단계/, '단계 흐름'], [/인과|원인|사슬/, '인과 사슬'], [/트리|분해|의사결정 트리/, '이슈 트리'], [/2\s*[×xX]\s*2|사분면/, '2×2'],
+    [/하우스|체계도|기둥/, '전략 하우스'], [/피라미드|위계/, '피라미드'], [/순환|사이클|플라이휠/, '순환 고리'], [/허브|방사|분류\s*맵|이해관계자\s*맵/, '허브'], [/사례|케이스|전후/, '사례 이행'],
+    [/퍼널|깔때기/, '깔때기'], [/타임라인|일정|간트|로드맵/, '일정표'], [/표|테이블|매트릭스/, '표'], [/카드|그리드|분할/, '카드 묶음']];
+  function guessDia(x) { for (var i = 0; i < DIA.length; i++) if (DIA[i][0].test(x)) return DIA[i][1]; return ''; }
+  function normalize(text) {
+    var L = text.replace(/\r/g, '').split('\n'), out = [], started = false, inBody = false, cover = false, no = 0, lastHead = '';
+    L.forEach(function (raw) {
+      var ind = (/^(\s*)/.exec(raw.replace(/\t/g, '    '))[1] || '').length;
+      var s = raw.replace(/\*\*/g, '').replace(/^\s*#{1,6}\s*/, '').replace(/^\s*(?:[-*•○◦▪]|\d+[.)])\s+/, '').trim();
+      var isHash = /^\s*#{2,6}/.test(raw);
+      if (!s) { out.push(''); return; }
+      if (/^-{3,}$/.test(s) || /드릴까요\?$|만들어 드릴까요|기획안입니다\.?$|구성했습니다\.?$/.test(s)) return;
+      var m;
+      // 장 머리
+      if ((m = /^\[?\s*표지\s*\]?\s*[:：]?\s*(.*)$/.exec(s)) && (isHash || !started || /^\[/.test(s))) { out.push('### [표지] : ' + m[1]); started = true; cover = true; inBody = false; return; }
+      if (/^\[?\s*목차\s*\]?\s*$/.test(s)) { out.push('### [목차]'); started = true; cover = false; inBody = false; return; }
+      if ((m = /^\[?\s*(?:본문|슬라이드|장표|Slide|페이지)\s*(\d+)\s*\]?\s*[:：.]?\s*(.*)$/i.exec(s)) && (isHash || /^\[?\s*(?:본문|슬라이드|장표|Slide|페이지)\s*\d+\s*(?:\]|[:：])/i.test(s))) {
+        var ttl = m[2].replace(/\s*\((?:Title|[A-Za-z ]+)\)\s*$/i, '').trim();
+        if (/^표지|^Title|타이틀/i.test(ttl)) { out.push('### [표지] : '); cover = true; started = true; inBody = false; return; }
+        no++; out.push('### 본문 ' + no + ' : ' + ttl); started = true; cover = false; inBody = false; lastHead = ttl; return;
+      }
+      if (!started) return;
+      var kv = /^([^:：]{1,16}?)\s*[:：]\s*(.*)$/.exec(s), k = kv ? kv[1].replace(/\s/g, '') : '', v = kv ? kv[2].trim() : '';
+      if (cover) {
+        if (kv && /제목|타이틀/.test(k) && v) { out[out.length - 1] = '### [표지] : ' + v; return; }
+        if (kv && /부제/.test(k) && v) { out[out.length - 1] = out[out.length - 1].replace(/\s*\(부제.*$/, '') + ' (부제 : ' + v + ')'; return; }
+        if (!/^###/.test(out[out.length - 1]) || out[out.length - 1].length > 12) return;
+        return;
+      }
+      if (kv && !inBody) {
+        if (/^(핵심메시지|헤드라인|거버닝메시지|메시지|핵심주장|주장)$/.test(k)) { out.push('- 리드: ✓ ' + v.replace(/있습니다\.?$/, '있음').replace(/됩니다\.?$/, '됨').replace(/입니다\.?$/, '임').replace(/합니다\.?$/, '함').replace(/습니다\.?$/, '음').replace(/\.$/, '')); return; }
+        if (/^(시각화아이디어|시각화|도식후보|도식|메인도식|레이아웃|구성방식)$/.test(k)) { var g = guessDia(v); if (g) out.push('- 주 도식: ' + g + ' |'); return; }
+        if (/^(역할|배경|톤|배경\/톤|톤앤매너|구성요소|디자인|색상|발표맥락)$/.test(k)) return;
+        if (/^(역할|배경|톤|배경\/톤|톤앤매너|구성요소|디자인|색상|발표맥락|발표포인트|주제)$/.test(k)) return;
+        if (/^(주요내용|본문구성내용|본문구성|비교포인트|주요사례|실행과제|구성내용|내용|세부내용|핵심내용|본문내용)$/.test(k)) { out.push('- 본문:'); inBody = true; if (v) out.push('  - ' + v); return; }
+        if (/^(서브|서브메세지|부연)$/.test(k)) { out.push('- 서브메시지: ' + v); return; }
+      }
+      if (kv && /^(시각화아이디어|시각화|레이아웃|배경\/톤|톤앤매너|디자인)$/.test(k)) { if (!/주 도식/.test(out.join('\n').split('### ').pop())) { var g2 = guessDia(v); if (g2) out.push('- 주 도식: ' + g2 + ' |'); } return; }
+      if (kv && /^(리드|서브메시지|본문구조|주도식|근거도식|강조|받침|출처|사실띠|근거띠|물음|연결|비중|스토리라인)$/.test(k)) { inBody = false; out.push('- ' + s); return; }
+      if (kv && /^본문$/.test(k)) { inBody = true; out.push('- ' + s); return; }
+      if (kv && /^(근거|실행)$/.test(k) && !inBody) { out.push('  - ' + s); return; }
+      out.push(raw.replace(/\*\*/g, ''));
+    });
+    return out.join('\n');
+  }
+  /* 도식이 없는 장: 본문 모양으로 도식을 추정 (A vs B → 전환표) */
+  function inferDesign(d) {
+    d.slides.forEach(function (s) {
+      var one = s.cells.length === 1 && !s.cells[0].name && s.cells[0].items.length >= 2 && s.cells[0].items.every(function (x) { return /^[^:：]{2,18}[:：]\s*\S/.test(x); });
+      if (one && !(s.dmain && isDataDesign(design(s.dmain)))) {
+        s.cells = s.cells[0].items.map(function (x) { var m = /^([^:：]{2,18})[:：]\s*(.+)$/.exec(x); return { name: m[1].trim(), items: [m[2].trim()] }; });
+        s.dmain = s.cells.length <= 4 && /전략|과제|방안|요인/.test(s.title + s.lead) ? '카드 묶음' : '역할 라벨'; s.guess = 1; return;
+      }
+      if (s.dmain) return;
+      var items = [].concat.apply([], s.cells.map(function (c) { return c.items.length ? c.items : [c.name]; }));
+      var vs = items.map(function (x) { return /^(.{1,14}?)\s*[:：]\s*(.+?)\s+(?:vs\.?|→|↔)\s+(.+)$/i.exec(x); });
+      if (vs.length >= 2 && vs.every(Boolean)) {
+        s.dmain = '전환표 | 차원: ' + vs.map(function (m) { return m[1]; }).join(' / ');
+        s.cells = [{ name: '기존 방식', items: vs.map(function (m) { return m[2]; }) }, { name: '새 방식', items: vs.map(function (m) { return m[3]; }) }];
+        s.guess = 1; return;
+      }
+      if (s.cells.length === 1 && !s.cells[0].name && s.cells[0].items.length >= 2 && s.cells[0].items.every(function (x) { return /^[^:：]{2,18}[:：]\s*\S/.test(x); })) {
+        s.cells = s.cells[0].items.map(function (x) { var m = /^([^:：]{2,18})[:：]\s*(.+)$/.exec(x); return { name: m[1].trim(), items: [m[2].trim()] }; });
+        s.dmain = '역할 라벨'; s.guess = 1; return;
+      }
+      if (s.cells.length >= 2) s.guess = 1;
+    });
+  }
   $('go').onclick = function () {
-    var t = $('src').value.trim(), m = $('msg');
+    var t0 = $('src').value.trim(), m = $('msg'), t = t0;
     m.className = '';
     if (!t) { m.textContent = '원고를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
     if (/<!doctype|<html|<section/i.test(t)) { show(fixHtml(t)); m.textContent = 'HTML 코드를 그대로 열었습니다.'; return; }
-    var kind = /^\s*#{2,4}\s*\[?\s*표지/m.test(t) && /^\s*[-*]\s*리드\s*[:：]/m.test(t) ? 'plan' : isStruct(t) ? 'struct' : 'free';
-    var d = kind === 'struct' ? parseStruct(t) : parse(kind === 'free' ? freeForm(t) : t);
+    var kind = isStruct(t) ? 'struct' : 'plan';
+    if (kind === 'plan') t = normalize(t);
+    var exact = /^\s*#{2,4}\s*\[?\s*표지/m.test(t0) && /^\s*[-*]\s*리드\s*[:：]/m.test(t0);
+    var d = kind === 'struct' ? parseStruct(t) : parse(t);
+    if (kind === 'plan') inferDesign(d);
     if (!d.slides.length) { m.textContent = '「### 본문 1 : …」 같은 장 머리를 찾지 못했습니다. 장표기획 원고 전체를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
     show(build(d));
     var miss = d.slides.filter(function (s) { return !s.cells.length; }).length;
-    if (kind === 'free') { m.className = 'err'; m.innerHTML = '⚠ 장표기획 스킬 형식이 아닌 원고입니다(첫 줄 「### [표지]」·「리드:」 줄 없음) — 제미나이에서 스킬이 실행되지 않은 답변입니다. 임시로 그렸지만 도식·리드가 빠집니다. <b>새 채팅에서 @ppt-slide-planner를 고르거나, 「장표기획 호출문」을 앞에 붙여</b> 다시 받아 주십시오.'; return; }
-    m.textContent = (kind === 'struct' ? '[구조화 결과] ' : '') + '표지 ' + (d.cover ? 1 : 0) + ' · 목차 ' + (d.toc ? 1 : 0) + ' · 본문 ' + d.slides.length + '장을 만들었습니다.' + (miss ? ' 본문이 비어 있는 장 ' + miss + '개 — 원고의 「본문:」 줄을 확인해 주십시오.' : '');
+    var guessed = d.slides.map(function (s, i) { return s.guess || !s.lead ? (i + 1) : 0; }).filter(Boolean);
+    if (!exact && kind === 'plan') { m.className = 'err'; }
+    m.textContent = (kind === 'struct' ? '[구조화 결과] ' : !exact ? '[원고 틀 일부 벗어남 — 너그럽게 읽음] ' : '') + (guessed.length ? '추정으로 그린 장: ' + guessed.join('·') + ' / ' : '') + '표지 ' + (d.cover ? 1 : 0) + ' · 목차 ' + (d.toc ? 1 : 0) + ' · 본문 ' + d.slides.length + '장을 만들었습니다.' + (miss ? ' 본문이 비어 있는 장 ' + miss + '개 — 원고의 「본문:」 줄을 확인해 주십시오.' : '');
   };
   $('open').onclick = function () { if (!last) return; var w = window.open(URL.createObjectURL(new Blob([last], { type: 'text/html' })), '_blank'); if (!w) $('msg').textContent = '팝업이 막혔습니다. 「HTML 저장」을 써 주십시오.'; };
   $('save').onclick = function () {
