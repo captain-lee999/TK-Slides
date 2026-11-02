@@ -768,3 +768,8 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-dc>.tk-list{padding:4px 10px 8px;}
 .tk-dc.tk-key{border-top-color:var(--tab-green);background:var(--green-tint);} .tk-dc.tk-key>.tk-h{color:var(--tab-green);}
 .tk-effect>.tk-h{background:none!important;padding:0;color:var(--tab-green);text-align:left;}
+/* v4.6: 여러 단 도식의 결론 띠는 단끼리 아래 줄을 맞춤 */
+.tk-chvb>div>.tk-sum,.tk-cards>.tk-card>.tk-sum,.tk-pillars>div>.tk-sum,.tk-steps>li>.tk-sum,.tk-ccols>div>.tk-sum,.tk-dc>.tk-sum,.tk-g2>.tk-sum,.tk-tl>.tk-sum,.tk-rad>.tk-sum{margin-top:auto;}
+.tk-chvb>div>.tk-list,.tk-ccols>div>.tk-list,.tk-tl>.tk-list{margin-bottom:10px;}
+/* 여유 모드: 표 행을 늘리지 않음 */
+.tk-slide.tk-slack .tk-main>.tk-table,.tk-slide.tk-slack .tk-main .tk-table{height:auto;}

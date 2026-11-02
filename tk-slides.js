@@ -392,6 +392,8 @@
       var r = b.getBoundingClientRect(); if (r.height < 8 || r.width < 8) return;
       rg.selectNodeContents(b); var c = rg.getBoundingClientRect();
       var used = Math.min(1, (c.height || 0) / r.height);
+      var bcs = getComputedStyle(b);
+      if (bcs.display.indexOf('flex') >= 0 && bcs.flexDirection === 'column' && b.children.length > 1) { var hs = 0; for (var q = 0; q < b.children.length; q++) hs += b.children[q].getBoundingClientRect().height; used = Math.min(1, (hs + pxf(bcs.paddingTop) + pxf(bcs.paddingBottom)) / r.height); }
       if (!b.closest('.tk-list') || b.classList.contains('tk-list')) empty += (1 - used) * r.width * r.height / area;
     });
     body.querySelectorAll('.tk-bars').forEach(function (c) {
@@ -683,7 +685,11 @@
                   if (ctr) x -= slack / 2; else if (right) x -= slack;
                   var lineFix = lh && pxf(cs.fontSize) ? Math.max(0, (lh - pxf(cs.fontSize) * 1.2) / 2) : 0;
                   Object.assign(o2, { x: x * K, y: (u.top - B.top - lineFix) * K, w: wid * K, h: Math.max(0.12, (u.bottom - u.top + lineFix * 2) * K) });
-                  if ((u.bottom - u.top) < (lh || pxf(cs.fontSize) * 1.4) * 1.5) o2.wrap = false;
+                  if ((u.bottom - u.top) < (lh || pxf(cs.fontSize) * 1.4) * 1.5) {
+                    /* 한 줄 글: 받는 PC 글꼴이 더 넓어도 상자 밖으로 나가지 않게, 상자 오른쪽 끝까지 폭을 주고 줄바꿈 허용 */
+                    if (!ctr && !right && !vert) { var edge = r.right - pxf(cs.paddingRight) - B.left; o2.w = Math.max(o2.w, (edge - (u.left - B.left)) * K); o2.wrap = true; }
+                    else o2.wrap = false;
+                  }
                 }
                 slide.addText(runs, o2);
               }
