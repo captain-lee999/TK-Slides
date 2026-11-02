@@ -1108,3 +1108,18 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-sfc2 .tk-sftx>em{font-size:14px;} .tk-sfc3 .tk-sftx>em{font-size:12px;}
 .tk-sftx>small{font-size:10.5px;line-height:1.3;color:#546e7a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .tk-sfcol>li>u{flex:0 0 30px;text-align:right;text-decoration:none;font-family:var(--font-arial);font-size:11px;color:#546e7a;}
+
+/* v5.4 비율 강조 — 핵심 한 몫 큰 숫자 + 전체 비율 막대 */
+.tk-share{display:flex;flex-direction:column;justify-content:center;gap:12px;min-height:0;padding:16px 4px 6px;}
+.tk-shtot{margin:0;text-align:right;font-size:calc(var(--fs) - 0.5px);color:var(--ink-label);}
+.tk-shtop{display:flex;align-items:baseline;gap:14px;}
+.tk-shbig{font-family:var(--font-arial);font-size:64px;line-height:1;font-weight:700;color:var(--tab-green);letter-spacing:-1px;}
+.tk-shbig .tk-su{font-size:26px;}
+.tk-shtop>p{margin:0;font-size:calc(var(--fs) + 4px);font-weight:700;color:var(--ink);}
+.tk-shbar{display:flex;height:34px;gap:2px;}
+.tk-shs{display:flex;align-items:center;justify-content:center;background:#bfbfbf;color:#fff;font-style:normal;}
+.tk-shs.tk-on{background:var(--tab-green);} .tk-shs.tk-rest{background:#e3e3e3;}
+.tk-shs>em{font-style:normal;font-family:var(--font-arial);font-weight:700;font-size:13px;}
+.tk-shleg{display:flex;gap:2px;font-size:calc(var(--fs) - 0.5px);color:var(--ink-label);}
+.tk-shleg>span{min-width:0;text-align:center;} .tk-shleg>span.tk-on{color:var(--tab-green);font-weight:700;}
+.tk-numtab td.n{text-align:right;font-family:var(--font-arial);}

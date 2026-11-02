@@ -25,7 +25,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v5.3</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v5.4</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -136,6 +136,8 @@
       var gapN = raw.filter(function (r) { return r.gap; }).length, gapAll = gapN > raw.length * 0.5 || gapN <= 1;
       function looksName(x) { return x.length <= 24 && !/[:：→]/.test(x) && !/^[↑↓✓✗●◐○!*\d'’]/.test(x) && !/^결론/.test(x) && !/\d[\d,.]*\s*(%|억|원|명|개|건|배|년)/.test(x); }
       var forced = 0, prevConcl = false;
+      /* 도식 줄에 칸 이름이 「이름 | A / B / C」로 적혀 있으면(들여쓰기가 사라진 원고) 그 이름으로 칸을 가름 */
+      var nmSet = []; (s.dmain || '').split('|').slice(1).forEach(function (seg) { if (!/[:：]/.test(seg) && /\//.test(seg)) nmSet = list(seg).map(function (x) { return x.replace(/\s/g, ''); }); });
       raw.forEach(function (r) {
         var inl = /^\[근거\]\s*(.+)$/.exec(r.txt), ip = inl ? inl[1].split(/\s+\/\s+/) : [];
         if (ip.length >= 3) { s.cells.push({ name: '[근거] ' + ip[0].trim(), items: ip.slice(1).map(function (x) { return x.trim(); }) }); forced = 0; prevConcl = true; return; }
@@ -143,6 +145,7 @@
         if (indented) isName = r.ind === base;
         else if (/^\[근거\]/.test(r.txt)) isName = true;
         else if (!lastCell) { if (looksName(r.txt) || nMain > 0) isName = true; else { s.cells.push({ name: '', items: [] }); lastCell = s.cells[0]; isName = false; } }
+        else if (nmSet.length >= 2 && !/^\[근거\]/.test(r.txt)) isName = nmSet.indexOf(r.txt.replace(/\s/g, '')) >= 0;
         else if (forced > 0) isName = false;
         else if (!indented && nMain > 0 && lastCell && !/^\[근거\]/.test(lastCell.name) && lastCell.items.length >= nMain && !/^결론\s*[:：]/.test(r.txt)) isName = true;
         else if (prevConcl) isName = true;
@@ -289,7 +292,7 @@
     items.forEach(function (x0) {
       var x = x0.replace(/\*\*/g, '').trim(), m;
       if ((m = /^(결론|요약|시사)\s*[:：]\s*(.+)$/.exec(x))) { sums.push(m[2]); return; }
-      if (/^§/.test(x)) { var sx = x.slice(1).trim(), qm = /["“「](.+?)["”」]/.exec(sx); rows.push('<li class="tk-spli' + (qm ? ' tk-spq' : '') + '"><i class="tk-sptag">' + (qm ? '인용' : /사례|사$|기업|그룹|회장|본사/.test(sx) ? '사례' : '근거') + '</i>' + numEm(esc(sx)) + '</li>'); return; }
+      if (/^§/.test(x)) { var must = /^§!/.test(x), sx = x.replace(/^§!?/, '').trim(), qm = /["“「](.+?)["”」]/.exec(sx); rows.push('<li class="tk-spli' + (qm ? ' tk-spq' : '') + '"' + (must ? ' data-must="1"' : '') + '><i class="tk-sptag">' + (qm ? '인용' : /사례|사$|기업|그룹|회장|본사/.test(sx) ? '사례' : '근거') + '</i>' + numEm(esc(sx)) + '</li>'); return; }
       var mk = '';
       if ((m = /^([↑↓✓✗●◐○!])\s*(.+)$/.exec(x))) { mk = '<i class="tk-mk tk-mk-' + MK[m[1]] + '">' + (m[1] === '!' ? '!' : m[1]) + '</i>'; x = m[2]; }
       if ((m = /^(.{2,24}?)\s*=\s*([\d.]+)\s*%$/.exec(x))) { rows.push('<li class="tk-meter">' + mk + '<span>' + esc(m[1]) + '</span><i style="--v:' + Math.min(100, +m[2]) + '%"></i><b>' + esc(m[2]) + '%</b></li>'); return; }
@@ -396,8 +399,50 @@
     /* 차트 풀: 같은 지표 두 시점 · 구성비 · 단위가 다른 여러 지표 */
     two: ['덤벨', '슬로프', '묶음 막대'],
     pct: ['100% 누적 막대', '누적 막대'],
-    multi: ['스몰 멀티플', '꺾은선']
+    multi: ['스몰 멀티플', '꺾은선'],
+    /* 모든 도식에 「다른 안」: 비율 하나가 핵심인 구성 · 단일 지표 · 수치 타일 · 2×2 · 표 · 레인 · 워터폴 · 깔때기 */
+    share: ['비율 강조', '100% 누적 막대', '수치 타일', '수치 표'],
+    bar: ['막대', '가로 막대', '수치 타일', '수치 표'],
+    tiles: ['수치 타일', '비율 강조', '가로 막대', '수치 표'],
+    line1: ['꺾은선', '막대', '수치 표'],
+    grp: ['묶음 막대', '누적 막대', '꺾은선', '수치 표'],
+    wf: ['워터폴', '수치 표'],
+    funnel: ['깔때기', '가로 막대', '수치 표'],
+    quad: ['2×2', '카드 묶음', '역할 라벨'],
+    table: ['표', '카드 묶음', '역할 라벨'],
+    lane: ['수영 레인', '표', '카드 묶음']
   };
+  /* 차트·수치 재료를 「이름 + 값」 점 목록으로 — 다른 안끼리 바꿔 그릴 때 씀(값은 원고 그대로) */
+  function dataPoints(d) {
+    var out = [];
+    if (d.kv['계열']) {
+      var P = plotData(d);
+      if (P.cats.length <= 1 || P.ser.every(function (x) { return x.values.length === 1; })) P.ser.forEach(function (x) { if (x.values.length) out.push({ label: x.name, value: x.values[0], raw: x.labels[0] }); });
+      else if (P.ser.length === 1) P.cats.forEach(function (c, i) { out.push({ label: c, value: P.ser[0].values[i], raw: P.ser[0].labels[i] }); });
+      return out;
+    }
+    list(d.kv['값']).forEach(function (v) {
+      if (/=\s*$/.test(v)) return; var vv = v.replace(/^([^|]+?)\s*\|\s*/, '$1 '), f = firstNum(vv);
+      if (f && /^[+\-]?\d/.test(vv.trim())) { out.push({ label: f.label, value: parseFloat(f.big.replace(/[^\d.\-]/g, '')) || 0, raw: f.big }); return; }
+      var l = lastNum(vv); if (l) out.push({ label: l.label, value: l.value, raw: l.raw });
+    });
+    return out;
+  }
+  function ptsSum(pts) { return pts.reduce(function (a, p) { return a + (+p.value || 0); }, 0); }
+  function isShare(d, pts) { var u = d.kv['단위'] || ''; return pts.length >= 1 && pts.length <= 5 && (/%/.test(u) || pts.every(function (p) { return /%/.test(p.raw); })) && (pts.length === 1 ? pts[0].value <= 100 : Math.abs(ptsSum(pts) - 100) <= 2); }
+  function dataShape2(d) {
+    var nm = d.name, pts = dataPoints(d), P = d.kv['계열'] ? plotData(d) : null;
+    if (/워터폴|브리지/.test(nm) && pts.length >= 2 && pts.every(function (p) { return p.value > 0 && !/^[+\-]/.test(p.raw); }) && isShare(d, pts)) return 'share';
+    if (/누적|막대|묶음|수치|타일|원형|파이|비율/.test(nm) && isShare(d, pts) && (!P || P.cats.length <= 1 || P.ser.every(function (x) { return x.values.length === 1; }))) return 'share';
+    var s0 = dataShape(d); if (s0) return s0;
+    if (/워터폴|브리지/.test(nm)) return 'wf';
+    if (/깔때기|퍼널/.test(nm)) return 'funnel';
+    if (/수치|타일|KPI|큰수치/i.test(nm)) return pts.length ? 'tiles' : '';
+    if (/꺾은선|추이선/.test(nm)) return P && P.ser.length === 1 ? 'line1' : 'grp';
+    if (/묶음|누적|복합|콤보/.test(nm)) return P && P.ser.length ? 'grp' : '';
+    if (/막대/.test(nm)) return pts.length >= 2 ? 'bar' : '';
+    return '';
+  }
   function plotData(d) {
     var cats = list(d.kv['축']), ser = list(d.kv['계열']).map(function (x) {
       var nums = x.match(/[+\-]?[\d,]+(?:\.\d+)?%?/g) || [], name = x.replace(/[+\-]?[\d,]+(?:\.\d+)?%?/g, '').replace(/\s+/g, ' ').trim();
@@ -430,6 +475,10 @@
     if (/평가표|하비|신호등/.test(nm)) return 'eval';
     if (/사례|이행/.test(nm) && C.length >= 2) return 'cases';
     if (/하우스|카드|병렬|역할|라벨|원형/.test(nm) && C.length >= 2 && C.length <= 5) return 'parts';
+    if (/2[×xX]2|매트릭스|사분면/.test(nm) && C.length === 4) return 'quad';
+    if (/^표/.test(nm) && C.length >= 2) return 'table';
+    if (/레인|수영|주체별/.test(nm) && C.length >= 2) return 'lane';
+    if (C.length >= 2) return 'other';
     return '';
   }
   var GR = function (x) { var m = /^(상|중|하|높음|보통|낮음|●|◐|○)/.exec((x || '').trim()); return m ? (/상|높음|●/.test(m[1]) ? 2 : /중|보통|◐/.test(m[1]) ? 1 : 0) : null; };
@@ -437,15 +486,22 @@
   function critItem(c, cr, j) { var it = c.items.find(function (x) { return x.indexOf(cr) === 0; }) || c.items[j] || ''; return it.replace(new RegExp('^' + cr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[:：]?\\s*'), ''); }
   function formFit(f, d, C) {
     var n = C.length, kv = d.kv, len = function (c) { return c.items.join('').length; };
-    var P = /덤벨|슬로프|막대|멀티플|꺾은선/.test(f) ? plotData(d) : null;
+    var P = /덤벨|슬로프|막대|멀티플|꺾은선/.test(f) ? plotData(d) : null, pts = /비율|수치|막대|꺾은선/.test(f) ? dataPoints(d) : [];
     switch (f) {
+      case '비율 강조': return isShare(d, pts) ? 56 : 0;
+      case '수치 타일': return pts.length >= 1 && pts.length <= 4 ? 46 : 0;
+      case '가로 막대': return pts.length >= 3 ? 47 : 0;
+      case '막대': return d.kv['계열'] ? (P.cats.length >= 3 && P.ser.length === 1 ? 46 : 0) : (pts.length >= 3 ? 48 : 0);
+      case '수치 표': return 38;
+      case '2×2': return n === 4 ? 50 : 0;
+      case '수영 레인': return 50;
       case '덤벨': return 50 + (P.ser.length >= 5 ? 3 : 0);
       case '슬로프': return P.ser.length > 7 ? 0 : crossing(P) ? 58 : 46;
       case '묶음 막대': return P.ser.length <= 4 ? 44 : 38;
-      case '100% 누적 막대': return 52;
+      case '100% 누적 막대': return !d.kv['계열'] ? 0 : P.cats.length <= 1 ? 40 : 52;
       case '누적 막대': return 44;
       case '스몰 멀티플': return 52;
-      case '꺾은선': return 38;
+      case '꺾은선': return P.cats.length >= 3 ? (P.ser.length === 1 ? 50 : dataShape(d) === 'multi' ? 36 : 46) : 0;
       case '벤 다이어그램': return n >= 2 && n <= 3 && (kv['공통'] || kv['교집합']) ? 60 : 0;
       case '스펙트럼': return n >= 3 && n <= 5 && list(kv['양끝']).length === 2 ? 60 : 0;
       case '피시본': return n >= 4 && n <= 7 ? (n >= 5 ? 56 : 52) : 0;
@@ -553,23 +609,30 @@
     deck.slides.forEach(function (s) {
       var d = design(s.dmain), C = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); });
       s._form = ''; s._alts = []; s._shape = '';
-      var shape = d && !isDataDesign(d) ? shapeOf(d.name, C, d) : (d ? dataShape(d) : '');
+      var shape = d && !isDataDesign(d) ? shapeOf(d.name, C, d) : (d ? dataShape2(d) : '');
+      if (!d && C.length >= 2 && !s.struct) shape = 'auto';
       var base = d ? d.name.replace(/\s/g, '') : '';
       if (shape) {
         var forced = d.kv['표현'] ? d.kv['표현'].replace(/\s/g, '') : '';
-        var cand = FORMS[shape].map(function (f) {
-          var sc = formFit(f, d, C); if (!sc) return null;
+        var orig = d ? d.name : '', pool = shape === 'other' ? [orig, '카드 묶음', '역할 라벨'] : shape === 'auto' ? ['자동', '카드 묶음', '역할 라벨'] : FORMS[shape].slice();
+        /* 후보가 하나뿐이면 글 묶음 형식을 대안으로 보탬 — 모든 장에 「다른 안」 */
+        var dd = d || design('카드 묶음');
+        var cand = pool.map(function (f) {
+          var sc = f === '자동' ? 50 : formFit(f, dd, C); if (!sc && /^(other|wf|funnel|tiles|quad|table|lane)$/.test(shape) && (f === orig || base === f.replace(/\s/g, ''))) sc = 50; if (!sc) return null;
           if (base === f.replace(/\s/g, '') && shape === 'eval') sc += 2;
           if (s._dens.band === 'low') sc += SHAPEY.test(f) ? 6 : TEXTY.test(f) ? -6 : 0;
           if (s._dens.band === 'high') sc += TEXTY.test(f) ? 4 : SHAPEY.test(f) ? -4 : 0;
           var pen = (uses[f] || 0) * 14 + (prev === f ? 20 : 0) + (fam[FAMILY[f]] || 0) * 5;
           return { f: f, s: sc - pen + (hashStr(salt + s.title + f) % 9), fit: sc };
         }).filter(Boolean).sort(function (a, b) { return b.s - a.s; });
+        if (cand.length < 2 && !isDataDesign(dd)) ['카드 묶음', '역할 라벨', '좌우 분할'].forEach(function (f) { if (cand.length < 2 && !cand.some(function (c) { return c.f === f; }) && (f !== '좌우 분할' || C.length === 2) && (f !== '역할 라벨' || C.length >= 3)) cand.push({ f: f, s: 0, fit: 30 }); });
+        if (cand.length < 2 && isDataDesign(dd) && !cand.some(function (c) { return c.f === '수치 표'; })) cand.push({ f: '수치 표', s: 0, fit: 30 });
         s._shape = shape; s._alts = cand.map(function (c) { return c.f; });
         var pick = cand[0] && cand[0].f;
         if (forced) { var hit = s._alts.find(function (f) { return f.replace(/\s/g, '') === forced; }); if (hit) pick = hit; }
         if (ov && ov[s.title] && s._alts.indexOf(ov[s.title]) >= 0) pick = ov[s.title];
         s._form = pick || '';
+        if (shape === 'auto' && s._form && s._form !== '자동') s.dmain = s._form;
       }
       var used = s._form || (d ? (isDataDesign(d) ? d.name : d.name) : '자동');
       uses[used] = (uses[used] || 0) + 1; if (FAMILY[used]) fam[FAMILY[used]] = (fam[FAMILY[used]] || 0) + 1; prev = used;
@@ -789,6 +852,14 @@
     }
   };
   function draw(d, C, s, used) {
+    if (s._form && !d._routed && d.raw === s.dmain && s._form.replace(/\s/g, '') !== d.name) {
+      if (/^표/.test(d.name)) { var hdx = list(d.kv['머리']); C = C.map(function (c) { return { name: c.name, items: c.items.map(function (x, j) { return hdx[j + 1] && !/^결론\s*[:：]/.test(x) && !/^[^:：]{1,12}[:：]/.test(x) ? hdx[j + 1] + ': ' + x : x; }) }; }); }
+      if (/레인|수영|주체별/.test(d.name)) {
+        var stx = list(d.kv['단계']);
+        if (s._form === '표') return draw({ name: '표', raw: '', kv: { '머리': ['주체'].concat(stx).join(' / '), '제목': d.kv['제목'] }, _routed: 1 }, C, s, used);
+        C = C.map(function (c) { return { name: c.name, items: c.items.map(function (x, j) { return stx[j] && x !== '-' ? stx[j] + ': ' + x : x; }).filter(function (x) { return x !== '-'; }) }; });
+      }
+    }
     if (/전환표|대비표|AS-IS|전후비교|이동트랙|상하전환|중앙축비교/.test((s._form || d.name).replace(/\s/g, '')) && C.length === 2) C = C.map(function (c) { return { name: c.name, items: c.items.filter(function (x) { return !/^결론\s*[:：]/.test(x); }) }; });
     if (s._form && !d._routed && d.raw === s.dmain) {
       var hd0 = d.kv['제목'] ? '<h3 class="tk-bh">' + esc(d.kv['제목']) + (d.kv['단위'] ? '<small>(단위 : ' + esc(d.kv['단위']) + ')</small>' : '') + '</h3>' : '';
@@ -894,7 +965,36 @@
       });
     });
   }
+  /* 비율 강조: 구성의 핵심 한 몫(리드·강조에 나온 값)을 큰 숫자로, 전체를 한 줄 비율 막대로 */
+  function shareHtml(d, s, pts, head) {
+    var U = d.kv['단위'] || '', wu = function (p) { return /[%가-힣a-zA-Z]$/.test(p.raw) ? p.raw : p.raw + U; };
+    var lead = (s.lead || '').replace(/\s/g, '') + (s.key || '').replace(/\s/g, ''), k = pts.findIndex(function (p) { return lead.indexOf(String(p.raw).replace(/[^\d.]/g, '')) >= 0 && String(p.raw).replace(/[^\d.]/g, '').length >= 1; });
+    if (k < 0) k = pts.reduce(function (a, p, i) { return p.value > pts[a].value ? i : a; }, 0);
+    var segs = pts.slice(); if (segs.length === 1) segs.push({ label: '', value: 100 - segs[0].value, raw: '', rest: 1 });
+    var kp = pts[k], tot = list(d.kv['값']).filter(function (v) { return /=\s*$/.test(v); }).map(function (v) { return v.replace(/=\s*$/, '').trim(); })[0] || '';
+    return head + '<div class="tk-share tk-grow' + (tot ? ' tk-shtotd' : '') + '"><div class="tk-shtop"><b class="tk-shbig">' + bigHtml(wu(kp)) + '</b><p>' + esc(kp.label) + '</p></div><div class="tk-shbar">' +
+      segs.map(function (p, i) { return '<i class="tk-shs' + (i === k ? ' tk-on' : '') + (p.rest ? ' tk-rest' : '') + '" style="flex:' + Math.max(1, p.value) + ' 1 0">' + (p.raw ? '<em>' + esc(wu(p)) + '</em>' : '') + '</i>'; }).join('') + '</div><div class="tk-shleg">' +
+      segs.map(function (p, i) { return '<span class="' + (i === k ? 'tk-on' : '') + '" style="flex:' + Math.max(1, p.value) + ' 1 0">' + esc(p.label) + '</span>'; }).join('') + '</div>' + (tot ? '<p class="tk-shtot">' + numEm(esc(tot)) + (/%/.test(d.kv['단위'] || '') && /\d$/.test(tot) ? '%' : '') + ' = 전체</p>' : '') + '</div>';
+  }
+  /* 수치 표: 차트 재료를 표로(행 = 항목, 열 = 시점) */
+  function numTable(d, head) {
+    var U = d.kv['단위'] || '', rows, hd;
+    if (d.kv['계열'] && list(d.kv['축']).length > 1) { var P = plotData(d); hd = ['구분'].concat(P.cats); rows = P.ser.map(function (x) { return [x.name].concat(x.labels); }); }
+    else { hd = ['구분', '값' + (U ? ' (' + U + ')' : '')]; rows = dataPoints(d).map(function (p) { return [p.label, p.raw]; }); }
+    return head + '<table class="tk-table tk-numtab"><thead><tr>' + hd.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function (r) { return '<tr><th>' + esc(r[0]) + '</th>' + r.slice(1).map(function (x) { return '<td class="n">' + esc(x || '') + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
+  }
   function drawData(d, s, used) {
+    var nm0 = d.name, fsel = !d._conv && d.raw === s.dmain && s._form ? s._form : '';
+    if (fsel && fsel.replace(/\s/g, '') !== nm0) {
+      var pts0 = dataPoints(d), U0 = d.kv['단위'] || '', hd0 = unitHead(d, ''), wu0 = function (p) { return /[%가-힣a-zA-Z]$/.test(p.raw) ? p.raw : p.raw + U0; };
+      var conv = function (name, kv2) { return drawData(Object.assign({}, d, { name: name, kv: Object.assign({ '제목': d.kv['제목'], '단위': d.kv['단위'], '강조': d.kv['강조'] }, kv2), _conv: 1 }), s, used); };
+      if (fsel === '비율 강조' && pts0.length) return shareHtml(d, s, pts0, hd0);
+      if (fsel === '수치 표') return numTable(d, hd0);
+      if (fsel === '수치 타일' && pts0.length) return conv('수치타일', { '값': pts0.map(function (p) { return wu0(p) + ' ' + p.label; }).join(' / ') });
+      if ((fsel === '막대' || fsel === '가로 막대') && !d.kv['계열'] && pts0.length) return conv(fsel === '막대' ? '막대' : '가로막대', { '값': pts0.map(function (p) { return p.label + ' ' + p.raw; }).join(' / ') });
+      if (fsel === '가로 막대' && pts0.length) return conv('가로막대', { '값': pts0.map(function (p) { return p.label + ' ' + p.raw; }).join(' / ') });
+      if (fsel === '막대' && d.kv['계열']) { var P0 = plotData(d); return conv('막대', { '값': P0.cats.map(function (c, i) { return c + ' ' + P0.ser[0].labels[i]; }).join(' / ') }); }
+    }
     var nm = d.name, kv = d.kv, vals = list(kv['값']);
     var head = unitHead(d, '');
     if (/수치|타일|KPI|근거묶음|큰수치/i.test(nm)) {
@@ -979,7 +1079,7 @@
       var words = t.replace(/[^가-힣A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(function (w) { return w.length >= 2 && !STOP.test(w); });
       var best = null, bs = 0;
       if (canIn) mainCells.forEach(function (c) { var tx = c.name + ' ' + c.items.join(' '), sc = words.filter(function (w) { return tx.indexOf(w) >= 0; }).length; if (sc > bs) { bs = sc; best = c; } });
-      if (best && bs >= 1) { var ci = best.items.findIndex(function (x) { return /^결론\s*[:：]/.test(x); }); if (ci < 0) ci = best.items.length; best.items.splice(ci, 0, '§' + t); }
+      if (best && bs >= 1) { var ci = best.items.findIndex(function (x) { return /^결론\s*[:：]/.test(x); }); if (ci < 0) ci = best.items.length; best.items.splice(ci, 0, '§' + (isMust(s, t) ? '!' : '') + t); }
       else s._sparePanel.push(t);
     });
     var auxCells = s.cells.filter(function (c) { return /^\[근거\]/.test(c.name); }).map(function (c) { return { name: c.name.replace(/^\[근거\]\s*/, ''), items: c.items }; });
@@ -1008,6 +1108,8 @@
     return { html: out, auto: true, layout: s._factsDone ? 3 : null };
   }
   /* 빈 면 채움 재료: 덱당 2장 제한으로 빠진 사실 띠 + 쓰지 않은 예비 사실 — 그린 뒤 빈 면이 클 때만 보임(tk-slides.js fit) */
+  /* 꼭 살릴 재료: 원고 본문 재료(덱당 2장 제한으로 빠진 사실 띠 · 큰 숫자에서 밀려난 도식 값). 예비층은 선택 재료 */
+  function isMust(s, t) { return !!(s._factsOff && s._factsOff.indexOf(t) >= 0) || (s._spareX || []).some(function (v) { return v.replace(/^([^|]+?)\s*\|\s*/, '$1 ') === t; }); }
   function spareParts(s) {
     var parts = [];
     if (s._factsOff) { var p = s._factsOff.split('|'); parts = (p.length > 1 ? p.slice(1).join('|') : p[0]).split(/\s*\/\s*/).map(function (x) { return x.trim(); }).filter(Boolean); s._spareLab = p.length > 1 ? p[0].trim() : ''; }
@@ -1020,7 +1122,8 @@
   function spareHtml(s) {
     var parts = s._sparePanel || []; if (!parts.length || (s.facts && !/^\s*없음/.test(s.facts))) return '';
     var fromStrip = s._factsOff && parts.every(function (x) { return s._factsOff.indexOf(x) >= 0; });
-    return '<div class="tk-spare"><p class="tk-spl">' + esc(fromStrip && s._spareLab ? s._spareLab : '참고 사실') + '</p><div class="tk-spr">' + parts.map(function (c) { var q = /["“「](.+?)["”」]/.exec(c), m = /^([^:：]{1,10})\s*[:：]\s*(.+)$/.exec(c); return '<div' + (q ? ' class="tk-spq"' : '') + '>' + (m ? '<b>' + esc(m[1]) + '</b><span>' + numEm(esc(m[2])) + '</span>' : '<span>' + numEm(esc(c)) + '</span>') + '</div>'; }).join('') + '</div></div>';
+    var mustP = parts.some(function (x) { return isMust(s, x); });
+    return '<div class="tk-spare"' + (mustP ? ' data-must="1"' : '') + '><p class="tk-spl">' + esc(fromStrip && s._spareLab ? s._spareLab : '참고 사실') + '</p><div class="tk-spr">' + parts.map(function (c) { var q = /["“「](.+?)["”」]/.exec(c), m = /^([^:：]{1,10})\s*[:：]\s*(.+)$/.exec(c); return '<div' + (q ? ' class="tk-spq"' : '') + '>' + (m ? '<b>' + esc(m[1]) + '</b><span>' + numEm(esc(m[2])) + '</span>' : '<span>' + numEm(esc(c)) + '</span>') + '</div>'; }).join('') + '</div></div>';
   }
   function bandHtml(s) {
     var out = '', band = s.band.split(/\s*→\s*/)[0];
