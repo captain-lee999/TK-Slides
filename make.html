@@ -26,7 +26,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.3</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.4</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -143,11 +143,12 @@
         else if (/^\[근거\]/.test(r.txt)) isName = true;
         else if (!lastCell) { if (looksName(r.txt) || nMain > 0) isName = true; else { s.cells.push({ name: '', items: [] }); lastCell = s.cells[0]; isName = false; } }
         else if (forced > 0) isName = false;
-        else if (!indented && nMain > 0 && lastCell && !/^\[근거\]/.test(lastCell.name) && lastCell.items.length >= nMain) isName = true;
+        else if (!indented && nMain > 0 && lastCell && !/^\[근거\]/.test(lastCell.name) && lastCell.items.length >= nMain && !/^결론\s*[:：]/.test(r.txt)) isName = true;
         else if (prevConcl) isName = true;
         else if (/^\[근거\]/.test(lastCell.name)) isName = false;
         else if (!gapAll) isName = r.gap || (r.txt.length <= 18 && looksName(r.txt) && lastCell.items.length >= 2 && false);
         else isName = looksName(r.txt) && lastCell.items.length >= 1;
+        if (isName && /^결론\s*[:：]/.test(r.txt) && lastCell) isName = false;
         if (isName) { s.cells.push({ name: r.txt, items: [] }); forced = indented ? 0 : (/^\[근거\]/.test(r.txt) ? nAux : nMain); }
         else { (lastCell || (s.cells.push({ name: '', items: [] }), s.cells[0])).items.push(r.txt); if (forced > 0) forced--; }
         prevConcl = /^결론\s*[:：]/.test(r.txt);
@@ -605,6 +606,7 @@
     }
   };
   function draw(d, C, s, used) {
+    if (/전환표|대비표|AS-IS|전후비교|좌우분할|이동트랙|상하전환|중앙축비교/.test((s._form || d.name).replace(/\s/g, '')) && C.length === 2) C = C.map(function (c) { return { name: c.name, items: c.items.filter(function (x) { return !/^결론\s*[:：]/.test(x); }) }; });
     if (s._form && !d._routed && d.raw === s.dmain) {
       var hd0 = d.kv['제목'] ? '<h3 class="tk-bh">' + esc(d.kv['제목']) + (d.kv['단위'] ? '<small>(단위 : ' + esc(d.kv['단위']) + ')</small>' : '') + '</h3>' : '';
       if (NEWF[s._form]) { var r0 = NEWF[s._form](d, C, s, used, hd0); if (r0) return r0; }
@@ -687,7 +689,7 @@
         var isMain = k === 'dmain', keep = [], move = [], lead = (s.lead || '').replace(/\s/g, ''), key = (s.key || '').replace(/\s/g, '');
         list(d.kv['값']).forEach(function (v) {
           var vv = v.replace(/^([^|]+?)\s*\|\s*/, '$1 '), f = firstNum(vv);
-          if (!f || /문장|가지|단계|유형/.test(f.big)) { s._gated.push(vv + ' (숫자 아님)'); return; }
+          if (!f || /문장|가지|단계|유형|대$/.test(f.big) || /^\d+\s*[xX×]\s*\d/.test(vv) || /사분면|프레임|매트릭스|원칙|전략|과제|요소|축/.test(f.label) && !/[%억원명건배]/.test(f.big)) { s._gated.push(vv + ' (숫자 아님)'); return; }
           var n = f.big.replace(/[\s+]/g, ''), inKey = key && (key.indexOf(n) >= 0 || n.indexOf(key) >= 0), inLead = lead.indexOf(n) >= 0;
           if (METH.test(f.label) && !inKey) { move.push(vv); s._gated.push(vv + ' (조사 방법 수치)'); return; }
           if (isMain || inKey) { keep.push(v); return; }
@@ -695,6 +697,9 @@
           move.push(vv); s._gated.push(vv + ' (리드·강조와 연결 없음)');
         });
         if (!isMain && keep.length > 1) { move = move.concat(keep.slice(1)); keep = keep.slice(0, 1); }
+        var bodyTxt = (s.lead || '') + ' ' + (s.facts || '') + ' ' + s.cells.map(function (c) { return c.name + ' ' + c.items.join(' '); }).join(' ');
+        move = move.filter(function (v) { var f2 = firstNum(v); var dup = f2 && bodyTxt.replace(/\s/g, '').indexOf(f2.big.replace(/[\s+]/g, '')) >= 0; if (dup) { s._gated = s._gated.map(function (x) { return x.indexOf(v) === 0 ? v + ' (본문에 이미 있음)' : x; }); } return !dup; });
+        if (move.length > 1) { move.slice(1).forEach(function (v) { s._gated = s._gated.map(function (x) { return x.indexOf(v) === 0 ? v + ' (근거 줄이 길어져 생략)' : x; }); }); move = move.slice(0, 1); }
         if (move.length) {
           var g = s.subs.find(function (x) { return x.kind === '근거'; }), add = move.join(' · ');
           if (g) g.text = add + ' · ' + g.text; else s.subs.unshift({ kind: '근거', text: add });
@@ -937,9 +942,11 @@
       if (dm && /사례|이행/.test(dm.name)) C.forEach(function (c) { if (c.items.length < 2 && !/→/.test(c.items.join(''))) w.push([pg, name(c) + ' 사례 줄 ' + c.items.length + '개', '전·후 두 줄(이전 상태 / 이후 결과) 쓰기']); });
       (s._gated || []).forEach(function (x) {
         var v = x.replace(/\s*\(.*\)$/, '').slice(0, 20);
-        if (/리드와 중복/.test(x)) w.push([pg, '「' + v + '」는 리드와 같은 수치라 큰 숫자에서 뺌', '큰 숫자로 쓰려면 비교 기준(전년比·N개 중·목표 대비)을 붙이고 「강조:」에 그 수치 쓰기']);
-        else if (/숫자 아님/.test(x)) w.push([pg, '「' + v + '」는 수치가 아님', '수치 타일에서 지우기(내용은 본문 줄로)']);
-        else if (/연결 없음/.test(x)) w.push([pg, '「' + v + '」를 근거 줄로 옮김', '이 수치가 장의 핵심이면 리드에 넣고 「강조:」에 쓰기']);
+        if (/리드와 중복/.test(x)) w.push([pg, '「' + v + '」는 리드에 이미 있어 큰 숫자로 그리지 않음', '조치 없어도 됨. 큰 숫자로 보이려면 비교 기준(전년比·N개 중·목표 대비)을 붙여 「강조: ' + v.split(' ')[0] + '」 추가']);
+        else if (/숫자 아님/.test(x)) w.push([pg, '「' + v + '」는 측정한 수치가 아니라 그리지 않음', '수치 타일 줄에서 지우기(개수·이름은 본문이나 제목에)']);
+        else if (/연결 없음/.test(x)) w.push([pg, '「' + v + '」는 리드와 연결이 없어 근거 줄에 작게 표시', '조치 없어도 됨. 장의 핵심 수치라면 리드에 넣고 「강조: ' + v.split(' ')[0] + '」 추가']);
+        else if (/본문에 이미/.test(x)) w.push([pg, '「' + v + '」는 본문에 이미 있어 생략', '조치 없어도 됨. 수치 타일 줄에서 지우면 깔끔함']);
+        else if (/길어져/.test(x)) w.push([pg, '「' + v + '」는 근거 줄이 길어져 생략', '꼭 보여야 하면 본문 줄이나 사실 띠로 옮기기']);
       });
       if (s.facts && !/^\s*없음/.test(s.facts)) factPages.push(pageOf(d, i));
       if (!s.note) w.push([pg, '출처 없음', '「- 출처: ※ 자료 이름 재구성」 추가']);

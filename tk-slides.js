@@ -385,7 +385,7 @@
     { dir: 'row-reverse', m: '1 1 0', a: '0 0 26%' }
   ];
   var prevDir = null;
-  var BOXES = '.tk-g2, .tk-tl > .tk-list, .tk-rad, .tk-vc, .tk-cz, .tk-effect, .tk-dc, .tk-list, .tk-ev, .tk-q, .tk-node, td, .tk-cnode, .tk-spoke, .tk-from, .tk-to, .tk-lc, .tk-branch > b, .tk-sr > span, .tk-ccols > div, .tk-rfrom, .tk-rto, .tk-sp, .tk-chvb > div, .tk-acr, .tk-udc, .tk-card, .tk-pillars > div';
+  var BOXES = '.tk-vf, .tk-sp, .tk-tr > span, .tk-bf > span, .tk-scr, .tk-g2, .tk-tl > .tk-list, .tk-rad, .tk-vc, .tk-cz, .tk-effect, .tk-dc, .tk-list, .tk-ev, .tk-q, .tk-node, td, .tk-cnode, .tk-spoke, .tk-from, .tk-to, .tk-lc, .tk-branch > b, .tk-sr > span, .tk-ccols > div, .tk-rfrom, .tk-rto, .tk-sp, .tk-chvb > div, .tk-acr, .tk-udc, .tk-card, .tk-pillars > div';
   function emptiness(body) {
     var br = body.getBoundingClientRect(), area = br.width * br.height, rg = document.createRange(), empty = 0, cramp = 0;
     body.querySelectorAll(BOXES).forEach(function (b) {
