@@ -455,7 +455,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-gantt>.tk-mslab{align-self:end;justify-self:center;font-size:10px;font-weight:700;color:var(--ink-label);}
 
 /* 차트 범례 (계열 2개 이상일 때 막대 끝 이름 대신) */
-.tk-legend{display:flex;gap:12px;justify-content:flex-end;font-size:10px;color:var(--ink-label);flex:none;}
+.tk-legend{display:flex;gap:12px;justify-content:flex-end;font-size:11px;color:var(--ink-label);flex:none;}
 .tk-legend i{display:inline-block;width:10px;height:10px;margin-right:4px;vertical-align:-1px;}
 
 /* 결론 띠(근거 묶음 아래) */
@@ -859,3 +859,104 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-toc .tk-part>ol{display:block!important;margin:0 0 0 60px!important;}
 .tk-toc .tk-part>ol>li{display:flex!important;max-height:none!important;}
 .tk-toc .tk-pn{justify-content:flex-start!important;text-align:left;} .tk-toc .tk-pn>span{text-align:left;}
+
+/* ══ v5.1: 차트·컨설팅 도식 확대 ══════════════════════ */
+/* 결론 쌍: 행으로 맞물리는 대비 형식의 칸 결론 */
+.tk-main>.tk-cpair{flex:none;display:grid;grid-template-columns:1fr 18px 1fr;gap:0;margin-top:var(--gap);}
+.tk-cpair>.tk-sum{padding:5px 10px;background:var(--gray-tint);color:var(--panel-bar);font-weight:700;}
+.tk-cpair>.tk-sum.tk-to{background:var(--green-tint);color:var(--tab-green);}
+/* 스몰 멀티플 */
+.tk-smalls{display:grid;grid-template-columns:repeat(min(var(--sm-n,4),4),minmax(0,1fr));gap:var(--gap);min-height:0;}
+.tk-sm{display:flex;flex-direction:column;min-height:0;padding:6px 8px 4px;background:var(--panel-fill-soft);border-top:2px solid var(--navy-mid);}
+.tk-sm.tk-key{border-top-color:var(--tab-green);background:var(--green-tint);}
+.tk-sm>h4{flex:none;margin:0 0 2px;display:flex;align-items:baseline;gap:6px;font-size:calc(var(--fs) + 1px);color:var(--tab-navy);}
+.tk-sm.tk-key>h4{color:var(--tab-green);}
+.tk-sm>h4>small{font-weight:400;font-size:11px;color:var(--ink-label);}
+.tk-sm>.tk-chart{min-height:90px;}
+.tk-dumb{min-height:150px;}
+/* 갭 분석 */
+.tk-gap{display:flex;flex-direction:column;min-height:0;}
+.tk-gapr{flex:1 1 0;display:grid;grid-template-columns:var(--gap-l,120px) minmax(0,1fr) minmax(0,1.6fr) minmax(0,1fr);gap:10px;align-items:center;padding:5px 0;border-bottom:var(--hairline) solid var(--line-light);}
+.tk-gapr.tk-gaph{flex:none;padding:3px 0;border-bottom:1.5px solid var(--green-mid);font-weight:700;color:var(--ink-label);text-align:center;}
+.tk-gapr.tk-gaph>span:last-child{color:var(--tab-green);}
+.tk-gapr>b{color:var(--tab-navy);font-size:calc(var(--fs) + 0.5px);}
+.tk-gapr.tk-key>b{color:var(--tab-green);}
+.tk-gcur,.tk-gtgt{padding:6px 10px;text-align:center;background:var(--gray-tint);}
+.tk-gtgt{background:var(--green-tint);color:var(--tab-green);font-weight:700;}
+.tk-gapr.tk-key>.tk-gtgt{background:var(--tab-green);color:var(--on-fill);} .tk-gapr.tk-key>.tk-gtgt .tk-n{color:var(--amber-point);}
+.tk-gbar{position:relative;display:flex;align-items:center;justify-content:center;min-height:18px;}
+.tk-gtrack{position:relative;width:100%;height:14px;background:#f2f2f2;}
+.tk-gtrack>i{position:absolute;top:0;bottom:0;display:block;}
+.tk-gfill{left:0;background:#b7b7b7;}
+.tk-gzone{background:#c6e0b4;} .tk-gzone.tk-down{background:var(--red-tint);}
+.tk-gmark{width:4px;top:-4px!important;bottom:-4px!important;background:var(--tab-green);}
+.tk-garrow{display:block;width:16px;height:22px;background:#bfbfbf;clip-path:polygon(0 0,100% 50%,0 100%);}
+/* 가치 사슬 */
+.tk-vchain2{display:flex;flex-direction:column;gap:6px;min-height:0;}
+.tk-vcrow{display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px;min-height:0;}
+.tk-vcrow.tk-grow{flex:1 1 auto;}
+.tk-vclab{display:flex;align-items:center;justify-content:center;text-align:center;font-style:normal;font-size:calc(var(--fs) - 0.5px);color:var(--ink-label);font-weight:700;}
+.tk-vcsup{display:grid;grid-template-columns:repeat(var(--vs-n,3),minmax(0,1fr));gap:4px;}
+.tk-vcsup>span{padding:5px 8px;text-align:center;background:var(--navy-tint);color:var(--tab-navy);font-weight:700;}
+.tk-vchain2 .tk-chvh{display:grid;grid-template-columns:repeat(var(--chv-n,3),minmax(0,1fr));gap:2px;}
+.tk-vchain2 .tk-chvb{display:grid;grid-template-columns:repeat(var(--chv-n,3),minmax(0,1fr));gap:var(--gap);min-height:0;}
+/* 성숙도 사다리 — 열마다 시작점은 같고 수준 막대 높이만 오름(계단식 배치 아님) */
+.tk-mlad{display:grid;grid-template-columns:repeat(var(--ml-n,5),minmax(0,1fr));gap:var(--gap);min-height:0;}
+.tk-mlv{display:flex;flex-direction:column;min-height:0;background:var(--panel-fill-soft);border:var(--hairline) solid var(--line-light);}
+.tk-mlbar{position:relative;flex:1 1 46px;min-height:46px;max-height:150px;background:#fff;border-bottom:var(--hairline) solid var(--line-light);}
+.tk-mlbar>i{position:absolute;left:14%;right:14%;bottom:0;display:block;background:#d9d9d9;}
+.tk-mlv.tk-done .tk-mlbar>i,.tk-mlv.tk-cur .tk-mlbar>i{background:#7f7f7f;}
+.tk-mlv.tk-path .tk-mlbar>i{background:#c6e0b4;}
+.tk-mlv.tk-tgt .tk-mlbar>i{background:var(--tab-green);}
+.tk-mlh{flex:none;display:flex;align-items:center;gap:6px;padding:6px 8px 2px;}
+.tk-mlh>b{flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid var(--line-dark);font-family:var(--font-arial);font-size:12px;}
+.tk-mlh>span{font-weight:700;font-size:calc(var(--fs) + 0.5px);line-height:1.25;}
+.tk-mltag{flex:none;align-self:flex-start;margin:2px 8px 2px 36px;padding:1px 8px;font-style:normal;font-size:11px;font-weight:700;color:#fff;background:#7f7f7f;}
+.tk-mltag.tk-tg{background:var(--tab-green);} .tk-mltag.tk-none{visibility:hidden;}
+.tk-mlv.tk-tgt{background:var(--green-tint);border-color:var(--tab-green);} .tk-mlv.tk-tgt .tk-mlh>span{color:var(--tab-green);}
+.tk-mlv.tk-cur{border-color:#7f7f7f;}
+.tk-mlv>.tk-list{flex:1 1 auto;padding:4px 9px 8px;}
+/* 우선순위 매트릭스 */
+.tk-prio{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;min-height:0;}
+.tk-prmap{position:relative;display:flex;flex-direction:column;min-height:200px;padding:18px 0 22px 24px;}
+.tk-prmap>.tk-pax-y{top:0;left:24px;}
+.tk-prf{position:relative;flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;border-left:1.5px solid var(--line-dark);border-bottom:1.5px solid var(--line-dark);}
+.tk-prq{background:#f7f7f7;padding:5px 8px;} .tk-prq.tk-hi{background:var(--green-tint);}
+.tk-prq>b{font-size:11px;color:var(--ink-label);} .tk-prq.tk-hi>b{color:var(--tab-green);}
+.tk-prq:nth-child(2n)>b{display:block;text-align:right;}
+.tk-prdot{position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-family:var(--font-arial);font-size:12px;font-weight:700;color:#fff;background:var(--navy-mid);}
+.tk-prdot.tk-top{background:var(--tab-green);}
+.tk-prlist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-height:0;}
+.tk-prl{flex:1 1 0;display:flex;align-items:center;gap:9px;padding:4px 6px;border-bottom:var(--hairline) solid var(--line-light);}
+.tk-prl>i{flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-style:normal;font-family:var(--font-arial);font-size:12px;font-weight:700;color:#fff;background:var(--navy-mid);}
+.tk-prl.tk-top>i{background:var(--tab-green);}
+.tk-prl>div{display:flex;flex-direction:column;min-width:0;}
+.tk-prl b{font-size:calc(var(--fs) + 0.5px);color:var(--tab-navy);} .tk-prl.tk-top b{color:var(--tab-green);}
+.tk-prl span{font-size:calc(var(--fs) - 1px);color:var(--ink-soft);line-height:1.3;}
+/* 의사결정 트리 */
+.tk-dtree{display:grid;grid-template-columns:minmax(0,0.9fr) minmax(0,3.4fr);gap:0;min-height:0;}
+.tk-dtroot{display:flex;align-items:center;padding-right:18px;}
+.tk-dtroot>b{width:100%;padding:12px 10px;text-align:center;background:var(--navy-tint);color:var(--tab-navy);font-size:calc(var(--fs) + 1.5px);border:1.5px solid var(--navy-mid);}
+.tk-dtbr{position:relative;display:flex;flex-direction:column;justify-content:center;gap:var(--gap);padding-left:18px;min-height:0;}
+.tk-dtv{position:absolute;left:0;top:12%;bottom:12%;width:2px;background:#a6a6a6;display:block;}
+.tk-dtb{position:relative;flex:1 1 0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.6fr);gap:12px;align-items:center;min-height:0;}
+.tk-dth{position:absolute;left:-18px;top:50%;width:18px;height:2px;background:#a6a6a6;display:block;}
+.tk-dtc{padding:10px;text-align:center;font-weight:700;background:#fff;border:1.5px solid var(--navy-mid);color:var(--tab-navy);}
+.tk-dtls{display:flex;flex-direction:column;justify-content:center;gap:6px;min-height:0;}
+.tk-dtl{display:grid;grid-template-columns:minmax(0,1.2fr) 14px minmax(0,1fr);gap:8px;align-items:center;}
+.tk-dtl>span{padding:6px 9px;background:var(--panel-fill-soft);border:var(--hairline) solid var(--line-light);}
+.tk-dtar{display:block;width:12px;height:16px;background:#bfbfbf;clip-path:polygon(0 0,100% 50%,0 100%);}
+.tk-dto{padding:6px 9px;text-align:center;background:var(--gray-tint);color:var(--ink);}
+.tk-dto.tk-yes{background:var(--green-tint);color:var(--tab-green);} .tk-dto.tk-no{background:var(--red-tint);color:var(--red-ink);}
+.tk-dtls>.tk-sum{padding:4px 9px;font-weight:700;color:var(--tab-green);}
+/* 빈 면 채움 재료(사실 띠 돌려쓰기) — 빈 면이 클 때만 보임 */
+.tk-spare{display:none;flex:none;align-items:stretch;gap:8px;margin-top:var(--gap);}
+.tk-spare.tk-on{display:flex;}
+.tk-spl{flex:none;margin:0;display:flex;align-items:center;justify-content:center;width:86px;padding:4px 6px;text-align:center;font-weight:700;color:var(--tab-navy);font-size:calc(var(--fs) - 0.5px);border-right:1.5px solid var(--navy-mid);}
+.tk-spr{flex:1 1 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;}
+.tk-spr>div{padding:6px 10px;background:var(--panel-fill-soft);font-size:calc(var(--fs) - 0.5px);line-height:1.35;}
+.tk-spr>div>b{display:block;color:var(--tab-navy);}
+.tk-spr>div>span{color:var(--ink-soft);}
+/* 이슈 트리 가지의 결론: 잎 아래에 붙임(별도 가지처럼 보이지 않게) */
+.tk-branch:has(>.tk-sum)>b{grid-row:span 2;}
+.tk-branch>.tk-sum{grid-column:2;padding:3px 8px;background:var(--green-tint);color:var(--tab-green);font-weight:700;font-size:calc(var(--fs) - 0.5px);border:var(--hairline) solid var(--line-light);border-left:0;border-top:0;}

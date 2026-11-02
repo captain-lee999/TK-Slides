@@ -147,6 +147,12 @@
       slide.style.setProperty('--gap', Math.max(4, Math.round(fs * 0.6)) + 'px');
       slide.style.setProperty('--lh', '1.36');
     }
+    /* 사다리 ⓪: 빈 면이 크면 덱당 2장 제한으로 빠진 사실 띠·안 쓴 예비 사실(tk-spare)을 먼저 꺼냄 */
+    var spare = body.querySelector('.tk-spare');
+    if (spare) {
+      spare.classList.remove('tk-on'); drawAll(slide);
+      if (fs >= 12 && slide.getAttribute('data-grow') !== 'no' && emptiness(body).empty > 0.08) { spare.classList.add('tk-on'); drawAll(slide); if (overflowing(body)) { spare.classList.remove('tk-on'); drawAll(slide); } }
+    }
     /* 빈 면이 많으면 글자를 키워 면을 채움(최대 14px) */
     if (fs === 12 && slide.getAttribute('data-grow') !== 'no') {
       var cap = 14;
@@ -214,6 +220,8 @@
     var cats = parse(box.getAttribute('data-cats')) || [], series = parse(box.getAttribute('data-series')) || [];
     if (!cats.length || !series.length) return;
     var key = box.hasAttribute('data-key') ? +box.getAttribute('data-key') : -1;
+    if (type === 'slope') return slope(box, cats, series, key);
+    if (type === 'pct') series = series.map(function (s) { return Object.assign({}, s, { values: s.values.map(function (v, ci) { var t = series.reduce(function (a, q) { return a + numv(q.values[ci]); }, 0) || 1; return numv(v) / t * 100; }) }); });
     var prev = box.previousElementSibling; if (prev && prev.classList.contains('tk-legend')) prev.remove();
     var colorOf = function (s, i) { return s.color || (series.length === 1 ? (C.navy) : PAL[i % PAL.length]); };
     legend(box, series, colorOf);
@@ -221,13 +229,13 @@
     var svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'none' });
     var bars = series.filter(function (s) { return (s.kind || (type === 'line' ? 'line' : 'bar')) === 'bar'; });
     var lines = series.filter(function (s) { return (s.kind || (type === 'line' ? 'line' : 'bar')) === 'line'; });
-    var stack = type === 'stack';
+    var stack = type === 'stack' || type === 'pct';
     var bmax = 0;
     cats.forEach(function (c, ci) {
       var sum = 0; bars.forEach(function (s) { var v = numv(s.values[ci]); sum += v; if (!stack) bmax = Math.max(bmax, v); });
       if (stack) bmax = Math.max(bmax, sum);
     });
-    bmax = bmax * 1.12 || 1;
+    bmax = type === 'pct' ? 100 : (bmax * 1.12 || 1);
     var ph = H - top - bot;
     cats.forEach(function (c, ci) {
       var gw = Math.min(slot * 0.7, stack ? 58 : 34 * Math.max(1, bars.length)), x0 = slot * ci + (slot - gw) / 2;
@@ -239,17 +247,18 @@
         if (key >= 0 && ci !== key && series.length === 1) col = C.prior;
         svg.appendChild(sv('rect', { x: x + (stack ? 0 : 1), y: y, width: Math.max(2, bw - (stack ? 0 : 2)), height: Math.max(1, h), fill: col }));
         var lab = s.labels && s.labels[ci] ? s.labels[ci] : fmt(s.values[ci]);
-        if (stack) { if (h > 13) svg.appendChild(sv('text', { x: x + bw / 2, y: y + h / 2 + 4, 'text-anchor': 'middle', 'font-size': 10.5, 'font-weight': 700, fill: si === 0 && col === PAL[0] ? '#fff' : C.ink }, lab)); }
+        if (stack) { if (h > 13) svg.appendChild(sv('text', { x: x + bw / 2, y: y + h / 2 + 4, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, fill: si === 0 && col === PAL[0] ? '#fff' : C.ink }, lab)); }
         else svg.appendChild(sv('text', { x: x + bw / 2, y: y - 4, 'text-anchor': 'middle', 'font-size': bars.length > 2 ? 10 : 12, 'font-weight': 700, fill: C.ink }, lab));
         acc += h;
       });
-      if (stack) svg.appendChild(sv('text', { x: x0 + gw / 2, y: H - bot - acc - 5, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: C.ink }, fmt(bars.reduce(function (a, s) { return a + numv(s.values[ci]); }, 0))));
+      if (stack && type !== 'pct') svg.appendChild(sv('text', { x: x0 + gw / 2, y: H - bot - acc - 5, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: C.ink }, fmt(bars.reduce(function (a, s) { return a + numv(s.values[ci]); }, 0))));
       svg.appendChild(sv('text', { x: slot * ci + slot / 2, y: H - 5, 'text-anchor': 'middle', 'font-size': 11, fill: ci === key ? C.ink : C.label, 'font-weight': ci === key ? 700 : 400, 'font-family': 'Noto Sans KR' }, c));
     });
     var allL = [].concat.apply([], lines.map(function (s) { return s.values.map(numv); }));
     lines.forEach(function (s, li) {
       var vals = s.values.map(numv), mx = Math.max.apply(null, bars.length ? vals : allL), mn = Math.min.apply(null, bars.length ? vals : allL);
-      var lo = bars.length ? mn - (mx - mn) * 0.6 : Math.min(0, mn), hi = mx + (mx - lo) * 0.15 || 1;
+      var zoom = box.getAttribute('data-zoom') === '1' && lines.length === 1;
+      var lo = bars.length || zoom ? mn - (mx - mn || Math.abs(mx) * 0.1 || 1) * 0.6 : Math.min(0, mn), hi = mx + (mx - lo) * 0.15 || 1;
       var pts = vals.map(function (v, ci) { return [slot * ci + slot / 2, top + 6 + (ph - 12) * (1 - (v - lo) / (hi - lo || 1))]; });
       var col = s.color || (bars.length ? '#c0504d' : PAL[li % PAL.length]);
       for (var k = 0; k < pts.length - 1; k++) svg.appendChild(sv('line', { x1: pts[k][0], y1: pts[k][1], x2: pts[k + 1][0], y2: pts[k + 1][1], stroke: col, 'stroke-width': 2.2 }));
@@ -260,6 +269,65 @@
       });
     });
     svg.appendChild(sv('line', { x1: 0, x2: W, y1: H - bot, y2: H - bot, stroke: C.line, 'stroke-width': 1 }));
+    box.innerHTML = ''; box.appendChild(svg);
+  }
+  /* 슬로프: 두 시점 값을 선으로 이음 — 오름 남색 · 내림 붉은색 · 강조 녹색, 양쪽 라벨은 겹치지 않게 밀어냄 */
+  function spreadY(ys, gap, lo, hi) {
+    var o = ys.map(function (y, i) { return { y: y, i: i }; }).sort(function (a, b) { return a.y - b.y; });
+    for (var k = 1; k < o.length; k++) if (o[k].y - o[k - 1].y < gap) o[k].y = o[k - 1].y + gap;
+    var over = o.length ? o[o.length - 1].y - hi : 0; if (over > 0) o.forEach(function (q) { q.y -= over; });
+    for (k = o.length - 2; k >= 0; k--) if (o[k + 1].y - o[k].y < gap) o[k].y = o[k + 1].y - gap;
+    var r = []; o.forEach(function (q) { r[q.i] = Math.max(lo, q.y); }); return r;
+  }
+  function slope(box, cats, series, key) {
+    var W = box.clientWidth || 360, H = box.clientHeight || 200, top = 30, bot = 14;
+    var all = [].concat.apply([], series.map(function (s) { return s.values.map(numv); })), mx = Math.max.apply(null, all), mn = Math.min.apply(null, all);
+    var pad = (mx - mn || 1) * 0.08, y = function (v) { return top + (H - top - bot) * (1 - (v - mn + pad) / (mx - mn + pad * 2)); };
+    var maxN = Math.max.apply(null, series.map(function (s) { return String(s.name).length; }));
+    var lw = Math.min(W * 0.3, maxN * 12 + 50), x1 = lw + 6, x2 = W - lw - 6;
+    var svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'none' });
+    [x1, x2].forEach(function (x, i) {
+      svg.appendChild(sv('line', { x1: x, x2: x, y1: top - 6, y2: H - bot + 4, stroke: C.line, 'stroke-width': 1 }));
+      svg.appendChild(sv('text', { x: x, y: 14, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 700, fill: C.label, 'font-family': 'Noto Sans KR' }, cats[i]));
+    });
+    var col = function (s, i) { var a = numv(s.values[0]), b = numv(s.values[1]); return i === key ? C.keyg : b < a ? C.red : C.key; };
+    var yl = spreadY(series.map(function (s) { return y(numv(s.values[0])); }), 15, top, H - bot), yr = spreadY(series.map(function (s) { return y(numv(s.values[1])); }), 15, top, H - bot);
+    series.forEach(function (s, i) {
+      var c = col(s, i), a = y(numv(s.values[0])), b = y(numv(s.values[1])), lab = s.labels || [];
+      svg.appendChild(sv('line', { x1: x1, y1: a, x2: x2, y2: b, stroke: c, 'stroke-width': i === key ? 3.2 : 2, opacity: key >= 0 && i !== key ? 0.75 : 1 }));
+      svg.appendChild(sv('circle', { cx: x1, cy: a, r: 4, fill: '#fff', stroke: c, 'stroke-width': 2 }));
+      svg.appendChild(sv('circle', { cx: x2, cy: b, r: 4, fill: c, stroke: c, 'stroke-width': 2 }));
+      svg.appendChild(sv('text', { x: x1 - 10, y: yl[i] + 4, 'text-anchor': 'end', 'font-size': 12, 'font-weight': i === key ? 700 : 400, fill: c, 'font-family': 'Noto Sans KR' }, s.name + '  ' + (lab[0] || fmt(s.values[0]))));
+      svg.appendChild(sv('text', { x: x2 + 10, y: yr[i] + 4, 'text-anchor': 'start', 'font-size': 12, 'font-weight': 700, fill: c, 'font-family': 'Noto Sans KR' }, (lab[1] || fmt(s.values[1])) + '  ' + s.name));
+    });
+    box.innerHTML = ''; box.appendChild(svg);
+  }
+  /* 덤벨: 항목마다 두 시점 값을 점 두 개와 선으로 — 앞 시점 회색, 뒤 시점 남색(줄면 붉은색, 강조는 녹색) */
+  function dumbbell(box) {
+    var cats = parse(box.getAttribute('data-cats')) || [], series = parse(box.getAttribute('data-series')) || [], key = +(box.getAttribute('data-key') || -1);
+    if (cats.length < 2 || !series.length) return;
+    var W = box.clientWidth || 360, H = box.clientHeight || 200, top = 26, k = series.length, rh = (H - top) / k;
+    var all = [].concat.apply([], series.map(function (s) { return s.values.slice(0, 2).map(numv); })), mx = Math.max.apply(null, all), mn = Math.min.apply(null, all);
+    var lo = Math.max(0, mn - (mx - mn) * 0.25), hi = mx + (mx - mn) * 0.12 || 1;
+    var maxN = Math.max.apply(null, series.map(function (s) { return String(s.name).length; })), lw = Math.min(W * 0.28, maxN * 12 + 16);
+    var x = function (v) { return lw + 34 + (W - lw - 80) * (v - lo) / (hi - lo || 1); };
+    var svg = sv('svg', { viewBox: '0 0 ' + W + ' ' + H, preserveAspectRatio: 'none' });
+    svg.appendChild(sv('circle', { cx: W - 150, cy: 9, r: 5, fill: C.prior }));
+    svg.appendChild(sv('text', { x: W - 141, y: 13, 'font-size': 11, fill: C.label, 'font-family': 'Noto Sans KR' }, cats[0]));
+    svg.appendChild(sv('circle', { cx: W - 80, cy: 9, r: 5, fill: C.key }));
+    svg.appendChild(sv('text', { x: W - 71, y: 13, 'font-size': 11, fill: C.label, 'font-family': 'Noto Sans KR' }, cats[1]));
+    series.forEach(function (s, i) {
+      var cy = top + rh * i + rh / 2, a = numv(s.values[0]), b = numv(s.values[1]), lab = s.labels || [];
+      var c = i === key ? C.keyg : b < a ? C.red : C.key, xa = x(a), xb = x(b);
+      svg.appendChild(sv('line', { x1: lw + 10, x2: W - 10, y1: cy, y2: cy, stroke: '#e3e3e3', 'stroke-width': 1 }));
+      svg.appendChild(sv('text', { x: lw, y: cy + 4, 'text-anchor': 'end', 'font-size': 12, 'font-weight': i === key ? 700 : 400, fill: C.ink, 'font-family': 'Noto Sans KR' }, s.name));
+      svg.appendChild(sv('line', { x1: Math.min(xa, xb), x2: Math.max(xa, xb), y1: cy, y2: cy, stroke: c, 'stroke-width': 4, opacity: 0.45 }));
+      svg.appendChild(sv('circle', { cx: xa, cy: cy, r: 6.5, fill: C.prior }));
+      svg.appendChild(sv('circle', { cx: xb, cy: cy, r: 7, fill: c }));
+      var lft = xa <= xb;
+      svg.appendChild(sv('text', { x: xa + (lft ? -11 : 11), y: cy + 4, 'text-anchor': lft ? 'end' : 'start', 'font-size': 11, fill: C.label }, lab[0] || fmt(a)));
+      svg.appendChild(sv('text', { x: xb + (lft ? 11 : -11), y: cy + 4, 'text-anchor': lft ? 'start' : 'end', 'font-size': 12, 'font-weight': 700, fill: c }, lab[1] || fmt(b)));
+    });
     box.innerHTML = ''; box.appendChild(svg);
   }
   /* 순환 고리: <div class="tk-cycle"><div class="tk-cnode"><b>이름</b><span>설명</span></div>…</div> */
@@ -388,6 +456,7 @@
     scope.querySelectorAll('.tk-bars').forEach(bars);
     scope.querySelectorAll('.tk-wf').forEach(waterfall);
     scope.querySelectorAll('.tk-plot').forEach(plot);
+    scope.querySelectorAll('.tk-dumb').forEach(dumbbell);
     scope.querySelectorAll('.tk-cycle').forEach(function (b) { ring(b, false); });
     scope.querySelectorAll('.tk-hub').forEach(function (b) { ring(b, true); });
   }
@@ -403,7 +472,7 @@
     { dir: 'row-reverse', m: '1 1 0', a: '0 0 26%' }
   ];
   var prevDir = null;
-  var BOXES = '.tk-vf, .tk-sp, .tk-tr > span, .tk-bf > span, .tk-scr, .tk-g2, .tk-tl > .tk-list, .tk-rad, .tk-vc, .tk-cz, .tk-effect, .tk-dc, .tk-list, .tk-ev, .tk-q, .tk-node, td, .tk-cnode, .tk-spoke, .tk-from, .tk-to, .tk-lc, .tk-branch > b, .tk-sr > span, .tk-ccols > div, .tk-rfrom, .tk-rto, .tk-sp, .tk-chvb > div, .tk-acr, .tk-udc, .tk-card, .tk-pillars > div';
+  var BOXES = '.tk-track > .tk-tr:not(.tk-th), .tk-vf, .tk-sp, .tk-tr > span, .tk-bf > span, .tk-scr, .tk-g2, .tk-tl > .tk-list, .tk-rad, .tk-vc, .tk-cz, .tk-effect, .tk-dc, .tk-list, .tk-ev, .tk-q, .tk-node, td, .tk-cnode, .tk-spoke, .tk-from, .tk-to, .tk-lc, .tk-branch > b, .tk-sr > span, .tk-ccols > div, .tk-rfrom, .tk-rto, .tk-sp, .tk-chvb > div, .tk-acr, .tk-udc, .tk-card, .tk-pillars > div';
   function emptiness(body) {
     var br = body.getBoundingClientRect(), area = br.width * br.height, rg = document.createRange(), empty = 0, cramp = 0;
     body.querySelectorAll(BOXES).forEach(function (b) {
@@ -637,14 +706,18 @@
                   var cats = parse(e.getAttribute('data-cats')) || [], sers = parse(e.getAttribute('data-series')) || [], ty = e.getAttribute('data-type') || 'group';
                   var num = function (v) { return typeof v === 'number' ? v : parseFloat(String(v).replace(/[^\d.\-]/g, '')) || 0; };
                   var mk = function (s) { return { name: s.name, labels: cats, values: (s.values || []).map(num) }; };
+                  var dec = Math.min(2, Math.max.apply(null, [0].concat([].concat.apply([], sers.map(function (s) { return (s.values || []).map(function (v) { var m = /\.(\d+)/.exec(String(v).replace(/,/g, '')); return m ? m[1].length : 0; }); })))));
+                  base.dataLabelFormatCode = dec ? '#,##0.' + '0'.repeat(dec) : '#,##0';
                   var bars = sers.filter(function (s) { return s.kind !== 'line'; }), lines = sers.filter(function (s) { return s.kind === 'line'; });
                   var cols = sers.map(function (s, i) { return hx(PAL[i % PAL.length]); });
                   Object.assign(base, { showLegend: sers.length > 1, legendPos: 't', legendFontSize: 9, legendFontFace: 'Noto Sans KR' });
-                  if (ty === 'line') slide.addChart(CT.line, sers.map(mk), Object.assign(base, { chartColors: cols, lineSize: 2, lineDataSymbol: 'circle', lineDataSymbolSize: 6, dataLabelPosition: 't' }));
+                  if (ty === 'slope') { var kz = +(e.getAttribute('data-key') || -1); cols = sers.map(function (s, i) { var v = (s.values || []).map(num); return i === kz ? '1E5A32' : v[1] < v[0] ? 'C0504D' : '1F497D'; }); Object.assign(base, { showLegend: true, legendPos: 'r' }); }
+                  var zv = null; if (e.getAttribute('data-zoom') === '1') { var av = [].concat.apply([], sers.map(function (s) { return (s.values || []).map(num); })), zmx = Math.max.apply(null, av), zmn = Math.min.apply(null, av); zv = zmn - (zmx - zmn || Math.abs(zmx) * 0.1 || 1) * 0.6; var p10 = Math.pow(10, Math.floor(Math.log10(Math.abs(zmx - zmn) || 1))); zv = Math.floor(zv / p10) * p10; }
+                  if (ty === 'line' || ty === 'slope') slide.addChart(CT.line, sers.map(mk), Object.assign(base, { chartColors: cols, lineSize: 2, lineDataSymbol: 'circle', lineDataSymbolSize: 6, dataLabelPosition: 't' }, zv != null ? { valAxisMinVal: zv } : {}));
                   else if (lines.length && bars.length) slide.addChart([{ type: CT.bar, data: bars.map(mk), options: { barGrouping: ty === 'stack' ? 'stacked' : 'clustered', chartColors: cols.slice(0, bars.length) } },
                     { type: CT.line, data: lines.map(mk), options: { chartColors: cols.slice(bars.length), secondaryValAxis: true, secondaryCatAxis: true, lineDataSymbol: 'circle' } }],
                     Object.assign(base, { valAxes: [{ showValAxisTitle: false, valAxisHidden: true }, { showValAxisTitle: false, valAxisHidden: true, valGridLine: { style: 'none' } }], catAxes: [{ catAxisTitle: '' }, { catAxisHidden: true }] }));
-                  else slide.addChart(CT.bar, bars.map(mk), Object.assign(base, { barDir: 'col', barGrouping: ty === 'stack' ? 'stacked' : 'clustered', chartColors: cols, dataLabelPosition: ty === 'stack' ? 'ctr' : 'outEnd' }));
+                  else slide.addChart(CT.bar, bars.map(mk), Object.assign(base, { barDir: 'col', barGrouping: ty === 'pct' ? 'percentStacked' : ty === 'stack' ? 'stacked' : 'clustered', chartColors: cols, dataLabelPosition: ty === 'stack' || ty === 'pct' ? 'ctr' : 'outEnd' }));
                 }
                 return;
               } catch (x) { /* 기본 차트 실패 시 도형으로 그림 */ }
@@ -705,7 +778,8 @@
                   Object.assign(o2, { x: x * K, y: (u.top - B.top - lineFix) * K, w: wid * K, h: Math.max(0.12, (u.bottom - u.top + lineFix * 2) * K) });
                   if ((u.bottom - u.top) < (lh || pxf(cs.fontSize) * 1.4) * 1.5) {
                     /* 한 줄 글: 받는 PC 글꼴이 더 넓어도 상자 밖으로 나가지 않게, 상자 오른쪽 끝까지 폭을 주고 줄바꿈 허용 */
-                    if (!ctr && !right && !vert) { var edge = r.right - pxf(cs.paddingRight) - B.left; o2.w = Math.max(o2.w, (edge - (u.left - B.left)) * K); o2.wrap = true; }
+                    if (e.matches('.tk-big, .tk-big *, .tk-stat > b, .tk-mlh > b, .tk-prdot') || (e.textContent || '').trim().length <= 6) { o2.wrap = false; o2.w = Math.max(o2.w, (u.right - u.left) * K * 1.25); }
+                    else if (!ctr && !right && !vert) { var edge = r.right - pxf(cs.paddingRight) - B.left; o2.w = Math.max(o2.w, (edge - (u.left - B.left)) * K); o2.wrap = true; }
                     else o2.wrap = false;
                   }
                 }
