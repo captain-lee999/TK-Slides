@@ -16,7 +16,6 @@
   button.main{background:var(--g);} button.sub{background:#7f7f7f;}
   #msg{font-size:12px;color:#595959;min-height:18px;}
   #msg.err{color:#c00000;}
-  #lint{font-size:11.5px;color:#7a4b00;background:#fff7e0;border-radius:4px;padding:0;} #lint:not(:empty){padding:6px 8px;} #lint p{margin:3px 0;line-height:1.45;} #lint u{text-decoration:none;color:#1e5a32;font-weight:700;} #lint{max-height:26vh;overflow:auto;}
   #forms{font-size:12px;max-height:30vh;overflow:auto;}
   #forms div{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #e3e3e3;}
   #forms span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -26,7 +25,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.4</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.5</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -37,8 +36,7 @@
       <button class="sub" id="clear">지우기</button>
     </div>
     <div id="msg"></div>
-    <div id="lint"></div>
-    <div id="forms"></div>
+        <div id="forms"></div>
   </div>
   <div class="pane"><iframe id="view" title="장표 미리보기"></iframe></div>
 </main>
@@ -154,7 +152,7 @@
         prevConcl = /^결론\s*[:：]/.test(r.txt);
       });
     });
-    deck.slides.forEach(function (s) { s.cells = s.cells.filter(function (c) { return c.name || c.items.length; }); });
+    deck.slides.forEach(function (s) { s.cells = s.cells.filter(function (c) { return c.name || c.items.length; }); s.cells.forEach(function (c) { c.name = c.name.replace(/\s*\([A-Za-z][^)]*\)/g, '').trim(); }); });
     /* 틀을 벗어난 원고도 빈 장이 되지 않게: 남은 줄로 리드·칸을 만듦 */
     deck.slides.forEach(function (s) {
       if (s.cells.length || !s._misc || !s._misc.length) return;
@@ -392,6 +390,7 @@
     nm = (nm || '').replace(/\s/g, '');
     if (/^표/.test(nm) && d && /담당|주관|책임/.test(d.kv['머리'] || '') && C.length >= 2 && C.length <= 5) return 'action';
     if (/전환표|대비표|AS-IS|전후비교/.test(nm) && C.length === 2) return 'contrast';
+    if (/전환표|대비표|AS-IS|전후비교/.test(nm) && C.length >= 3 && C.length <= 5) return 'parts';
     if (/단계|셰브론|프로세스|절차/.test(nm) && C.length >= 2 && C.length <= 7) return 'flow';
     if (/인과|연쇄|사슬/.test(nm) && C.length >= 2 && C.length <= 7) return 'chain';
     if (/트리|분해/.test(nm) && C.length >= 2 && C.length <= 6) return 'tree';
@@ -760,8 +759,16 @@
     return null;
   }
   function isDataDesign(d) { return d && /수치|타일|KPI|근거묶음|큰수치|워터폴|브리지|깔때기|퍼널|막대|꺾은선|추이선|복합|콤보/i.test(d.name); }
+  function inlineCells(d) {
+    var rows = [], cur = null;
+    list(d.kv['칸']).forEach(function (v) { var m = /^([^:：]{1,14})\s*[:：]\s*(.+)$/.exec(v); if (m) { cur = { name: m[1].trim(), items: [m[2].trim()] }; rows.push(cur); } else if (cur) cur.items.push(v); });
+    return rows;
+  }
   function body(s, idx) {
     var main = design(s.dmain), aux = design(s.daux), used = {};
+    if (aux && aux.kv['칸'] && /^(표|평가표|전환표|사례|수영)/.test(aux.name) && !s.cells.some(function (c) { return /^\[근거\]/.test(c.name); })) {
+      var ic = inlineCells(aux); if (ic.length) s.cells = s.cells.concat(ic.map(function (c) { return { name: '[근거] ' + c.name, items: c.items }; }));
+    }
     var mainCells = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); });
     var auxCells = s.cells.filter(function (c) { return /^\[근거\]/.test(c.name); }).map(function (c) { return { name: c.name.replace(/^\[근거\]\s*/, ''), items: c.items }; });
     if (!main && !aux) return bodyAuto(s, idx);
@@ -921,7 +928,7 @@
     if (kind === 'plan') inferDesign(d);
     if (!d.slides.length) { m.textContent = '「### 본문 1 : …」 같은 장 머리를 찾지 못했습니다. 장표기획 원고 전체를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
     if (t0 !== lastSrc) { OV = {}; lastSrc = t0; }
-    show(build(d, OV)); formsUI(d); lintUI(d, t0);
+    show(build(d, OV)); formsUI(d);
     var miss = d.slides.filter(function (s) { return !s.cells.length; }).length;
     var guessed = d.slides.map(function (s, i) { return s.guess || !s.lead ? (i + 1) : 0; }).filter(Boolean);
     if (!exact && kind === 'plan') { m.className = 'err'; }
@@ -929,32 +936,6 @@
   };
   var OV = {}, lastSrc = '', GOTO = null;
   function pageOf(d, i) { return i + 1 + (d.cover ? 1 : 0) + (d.toc ? 1 : 0); }
-  function lintUI(d, src) {
-    var w = [], ns = d.slides.length, factPages = [];
-    d.slides.forEach(function (s, i) {
-      var pg = pageOf(d, i) + '쪽', C = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); }), dm = design(s.dmain), name = function (c) { return '「' + (c.name || '이름 없는 칸').slice(0, 12) + '」'; };
-      if (!s.lead) w.push([pg, '리드가 없음', '「- 리드: ✓ 근거 수치 + 판단(시급·필요·타당)」 한 문장 추가']);
-      if (!s.cells.length && !(dm && isDataDesign(dm))) w.push([pg, '본문 칸이 없음', '「- 본문:」 아래에 칸 이름과 줄(핵심어: 설명) 추가']);
-      var m = /(\d+)\s*(?:대|가지|개)\s/.exec(s.title + ' ' + s.lead);
-      if (m && +m[1] >= 2 && +m[1] <= 9 && C.length && dm && !isDataDesign(dm) && !/^표|평가표/.test(dm.name) && +m[1] !== C.length) w.push([pg, '「' + m[0].trim() + '」인데 칸이 ' + C.length + '개', +m[1] > C.length ? '칸 ' + (+m[1] - C.length) + '개를 더 쓰거나 제목·리드의 숫자를 ' + C.length + '로 고치기' : '칸을 ' + m[1] + '개로 줄이거나 숫자를 ' + C.length + '로 고치기']);
-      if (dm && /^표/.test(dm.name)) { var hn = list(dm.kv['머리']).length - 1; C.forEach(function (c) { if (hn > 0 && c.items.length !== hn) w.push([pg, name(c) + ' 행 칸 줄 ' + c.items.length + '개', '머리(' + list(dm.kv['머리']).slice(1).join('·') + ')에 맞춰 ' + hn + '줄로 — ' + (c.items.length < hn ? '빠진 칸 채우기' : '넘친 줄 합치기')]); }); }
-      if (dm && /평가표/.test(dm.name)) { var cr = list(dm.kv['기준']); C.forEach(function (c) { var miss = cr.filter(function (q, j) { return GR(critItem(c, q, j)) == null; }); if (miss.length) w.push([pg, name(c) + '의 ' + miss.join('·') + ' 등급 없음', '그 칸 줄을 「상 — 풀이」처럼 상·중·하로 시작']); }); }
-      if (dm && /사례|이행/.test(dm.name)) C.forEach(function (c) { if (c.items.length < 2 && !/→/.test(c.items.join(''))) w.push([pg, name(c) + ' 사례 줄 ' + c.items.length + '개', '전·후 두 줄(이전 상태 / 이후 결과) 쓰기']); });
-      (s._gated || []).forEach(function (x) {
-        var v = x.replace(/\s*\(.*\)$/, '').slice(0, 20);
-        if (/리드와 중복/.test(x)) w.push([pg, '「' + v + '」는 리드에 이미 있어 큰 숫자로 그리지 않음', '조치 없어도 됨. 큰 숫자로 보이려면 비교 기준(전년比·N개 중·목표 대비)을 붙여 「강조: ' + v.split(' ')[0] + '」 추가']);
-        else if (/숫자 아님/.test(x)) w.push([pg, '「' + v + '」는 측정한 수치가 아니라 그리지 않음', '수치 타일 줄에서 지우기(개수·이름은 본문이나 제목에)']);
-        else if (/연결 없음/.test(x)) w.push([pg, '「' + v + '」는 리드와 연결이 없어 근거 줄에 작게 표시', '조치 없어도 됨. 장의 핵심 수치라면 리드에 넣고 「강조: ' + v.split(' ')[0] + '」 추가']);
-        else if (/본문에 이미/.test(x)) w.push([pg, '「' + v + '」는 본문에 이미 있어 생략', '조치 없어도 됨. 수치 타일 줄에서 지우면 깔끔함']);
-        else if (/길어져/.test(x)) w.push([pg, '「' + v + '」는 근거 줄이 길어져 생략', '꼭 보여야 하면 본문 줄이나 사실 띠로 옮기기']);
-      });
-      if (s.facts && !/^\s*없음/.test(s.facts)) factPages.push(pageOf(d, i));
-      if (!s.note) w.push([pg, '출처 없음', '「- 출처: ※ 자료 이름 재구성」 추가']);
-    });
-    if (ns >= 4 && factPages.length > Math.ceil(ns / 2)) w.push(['덱', '사실 띠가 ' + factPages.length + '장(' + factPages.join('·') + '쪽)', Math.ceil(ns / 2) + '장 이하로 — 수치·고유명사 없는 띠부터 「사실 띠: 없음」으로']);
-    if (/실행\s*[:：]\s*☞|^\s*-\s*☞/m.test(src)) w.push(['덱', '실행(☞) 줄은 장표에 나오지 않음', '지워도 됨(할 일은 마지막 장 실행 표에)']);
-    $('lint').innerHTML = w.length ? '<p><b>원고 점검 — 보충할 것 ' + w.length + '건</b></p>' + w.map(function (x) { return '<p><b>' + esc(x[0]) + '</b> ' + esc(x[1]) + ' → <u>' + esc(x[2]) + '</u></p>'; }).join('') : '<p><b>원고 점검</b> 보충할 것 없음</p>';
-  }
   function formsUI(d) {
     var box = $('forms'); box.innerHTML = '';
     d.slides.forEach(function (s, i) {
@@ -975,7 +956,7 @@
     var a = document.createElement('a'), t = (/<title>([^<]*)<\/title>/.exec(last) || [, 'TK 장표'])[1];
     a.href = URL.createObjectURL(new Blob([last], { type: 'text/html' })); a.download = t + '.html'; a.click();
   };
-  $('clear').onclick = function () { $('forms').innerHTML = ''; $('lint').innerHTML = ''; $('src').value = ''; $('view').srcdoc = ''; last = ''; $('msg').textContent = ''; };
+  $('clear').onclick = function () { $('forms').innerHTML = ''; $('src').value = ''; $('view').srcdoc = ''; last = ''; $('msg').textContent = ''; };
   window.TKMake = { parse: parse, build: build };
 })();
 </script>
