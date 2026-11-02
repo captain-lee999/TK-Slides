@@ -1057,29 +1057,23 @@
         '<p class="tk-date">' + esc(date || new Date().getFullYear() + '. ' + (new Date().getMonth() + 1)) + '</p><p class="tk-dept">영업본부 영업기획팀</p></section>');
     }
     if (deck.toc) {
-      var pg = deck.cover ? 3 : 2, no = 0, parts = deck.toc.parts.filter(function (p) { return p.items.length; });
-      var solo = parts.length === 1 && !/^[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ\d]/.test(parts[0].name);
-      var total = parts.reduce(function (a, p) { return a + p.items.length; }, 0);
-      var cardsT = !solo && parts.length >= 2 && parts.length <= 4 && total <= 12 && parts.every(function (p) { return p.items.length <= 5; });
-      if (cardsT) {
-        /* SlideForge 목차: 묶음별 전체 높이 열(회색 → 녹색 → 진녹), 문제·해법·실행 표지, 1-1. 번호·쪽, 한 장짜리 묶음은 장 흐름 한 줄, 열 사이 작은 회색 화살표 */
-        var TAG = function (n) { return /원인|문제|위기|진단|현황|한계|배경|실태|환경/.test(n) ? ['문제', 'tk-tg-p'] : /해법|전략|방안|대응|혁신|원칙/.test(n) ? ['해법', 'tk-tg-s'] : /실행|과제|구축|추진|계획|로드맵|체계|전환/.test(n) ? ['실행', 'tk-tg-x'] : null; };
-        h.push('<section class="tk-toc tk-sftoc"><h2 class="tk-title">목 차</h2>' + (deck.toc.story ? '<p class="tk-sfstory">' + esc(deck.toc.story) + '</p>' : '') + '<div class="tk-sfcols">' +
-          parts.map(function (p, pi) {
-            var pm = /^(\d+)\.?\s*(.*)$/.exec(p.name) || [, String(pi + 1), p.name], tg = TAG(pm[2]), desc = '';
-            var lis = p.items.map(function (x, k) { no++; var m = /^(\d+)\.\s*(.*)$/.exec(x), sl = deck.slides[no - 1];
-              if (p.items.length === 1 && sl) { var nm = sl.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); }).map(function (c) { return c.name; }).slice(0, 4); if (nm.length >= 2) desc = nm.join(/인과|사슬|흐름|단계|셰브론|피시본|사다리|스펙트럼|가치/.test(sl._form || sl.dmain || '') ? ' → ' : ' · '); }
-              return '<li><i>' + esc(pm[1]) + '-' + (k + 1) + '.</i><em>' + esc(m ? m[2] : x) + '</em><u>' + (pg++) + '</u></li>'; }).join('');
-            return (pi ? '<div class="tk-sfarr"><i class="tk-sfsh"></i><i class="tk-sfhd" data-shape="tri-r"></i></div>' : '') + '<div class="tk-sfcol tk-sfc' + Math.min(pi, 2) + (pi === parts.length - 1 ? ' tk-sflast' : '') + '" style="flex:' + (1 + 0.12 * (p.items.length - 1)).toFixed(2) + ' 1 0"><div class="tk-sfh"><span>' + esc(pm[1]) + '</span><b>' + esc(pm[2]) + '</b></div><div class="tk-sfb">' +
-              (tg ? '<p class="tk-sftag ' + tg[1] + '">' + tg[0] + '</p>' : '') + '<ol>' + lis + '</ol>' + (desc ? '<p class="tk-sfdesc">' + esc(desc) + '</p>' : '') + '</div></div>';
-          }).join('') + '</div></section>');
-      } else
-      h.push('<section class="tk-toc' + (solo ? ' tk-solo' : '') + (parts.length > 3 ? ' tk-many' : '') + (total > 9 ? ' tk-dense' : '') + '"><h2 class="tk-title">목 차</h2>' +
-        (deck.toc.story ? '<div class="tk-story"><b>핵심 메시지</b><p>' + esc(deck.toc.story) + '</p></div>' : '') + '<div class="tk-parts">' +
-        parts.map(function (p) {
-          var pm = /^(\d+)\.?\s*(.*)$/.exec(p.name) || [, '', p.name];
-          return '<div class="tk-part" style="flex:' + p.items.length + ' 1 0">' + (solo ? '' : '<div class="tk-pn"><span>' + esc(pm[1]) + '</span><b>' + esc(pm[2]) + '</b></div>') + '<ol>' +
-            p.items.map(function (x, k) { no++; var m = /^(\d+)\.\s*(.*)$/.exec(x); return '<li><i>' + (no < 10 ? '0' : '') + no + '</i><em>' + esc(m ? m[2] : x) + '</em><s></s><u>' + (pg++) + '</u></li>'; }).join('') + '</ol></div>';
+      /* SlideForge 목차(DSLInterpreter renderToc 이식): 본문 장 전체를 순서대로 · 큰 번호(한 색) · 제목 · 하위 키워드 · 쪽 번호 ·
+         행 사이 가는 선 · 행 높이 = min(72, 가용 높이 ÷ 열당 행 수) · 8개부터 2열, 15개부터 3열(열 사이 세로 가는 선) · 10개 이상이면 01~NN */
+      var pg = deck.cover ? 3 : 2, items = [];
+      deck.toc.parts.forEach(function (p) { p.items.forEach(function (x) { items.push(String(x).replace(/^(\d+)\.\s*/, '')); }); });
+      if (!items.length) items = deck.slides.map(function (s) { return s.title.replace(/^[\d\-.\s]+/, ''); });
+      var n = Math.min(items.length, 24), colN = n > 14 ? 3 : n > 7 ? 2 : 1, perCol = Math.ceil(n / colN), pad = n >= 10;
+      var ents = items.slice(0, n).map(function (t, i) {
+        var sl = deck.slides[i], keys = sl ? sl.cells.filter(function (c) { return !/^\[근거\]/.test(c.name) && c.name; }).map(function (c) { return c.name; }).filter(function (v, k, a) { return a.indexOf(v) === k; }).slice(0, 3) : [];
+        return { no: pad ? ('0' + (i + 1)).slice(-2) : String(i + 1), title: t, keys: keys.join(' · '), page: pg + i };
+      });
+      var cols = []; for (var ci = 0; ci < colN; ci++) cols.push(ents.slice(ci * perCol, (ci + 1) * perCol));
+      h.push('<section class="tk-toc tk-sftoc tk-sfc' + colN + (pad ? ' tk-sfpad' : '') + '" style="--sf-per:' + perCol + '"><h2 class="tk-title">목 차</h2>' +
+        (deck.toc.story ? '<p class="tk-sfstory">' + esc(deck.toc.story) + '</p>' : '') + '<div class="tk-sfcols">' +
+        cols.map(function (col, k) {
+          return (k ? '<i class="tk-sfdiv"></i>' : '') + '<ol class="tk-sfcol">' + col.map(function (e) {
+            return '<li><b class="tk-sfno">' + esc(e.no) + '</b><div class="tk-sftx"><em>' + esc(e.title) + '</em>' + (colN === 1 && e.keys ? '<small>' + esc(e.keys) + '</small>' : '') + '</div><u>' + e.page + '</u></li>';
+          }).join('') + '</ol>';
         }).join('') + '</div></section>');
     }
     deck.slides.forEach(function (s, i) {
