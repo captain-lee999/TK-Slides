@@ -829,3 +829,11 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-card,.tk-sp,.tk-g2,.tk-rad,.tk-dc,.tk-vf,.tk-vc,.tk-cz,.tk-ccols>div,.tk-chvb>div,.tk-pillars>div,.tk-ac{padding-top:calc(var(--spread,0px) / 2 + 8px);padding-bottom:calc(var(--spread,0px) / 2 + 8px);}
 .tk-table td,.tk-table th{padding-top:calc(var(--spread,0px) / 2 + 4px);padding-bottom:calc(var(--spread,0px) / 2 + 4px);}
 .tk-sr>span,.tk-tr,.tk-bf{padding-top:calc(var(--spread,0px) / 2 + 4px);padding-bottom:calc(var(--spread,0px) / 2 + 4px);}
+/* v4.9 사다리 ④ 도형 확대(글자 크기는 고정) */
+.tk-circ{width:min(calc(118px * var(--shape,1)),92%);}
+.tk-chvh>b{min-height:calc(36px * var(--shape,1));}
+.tk-vflow>.tk-vf>.tk-vdot,.tk-tl>.tk-tldot{width:calc(34px * var(--shape,1));height:calc(34px * var(--shape,1));}
+.tk-g2h>.tk-vdot{width:calc(28px * var(--shape,1));height:calc(28px * var(--shape,1));}
+.tk-radcore>b{width:calc(150px * var(--shape,1));height:calc(150px * var(--shape,1));}
+.tk-radial{grid-template-columns:1fr calc(150px * var(--shape,1)) 1fr;}
+.tk-trk>.tk-t0,.tk-trk>.tk-t1{width:calc(14px * var(--shape,1));height:calc(14px * var(--shape,1));}

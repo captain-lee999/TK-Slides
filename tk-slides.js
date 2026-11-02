@@ -164,6 +164,15 @@
         if (overflowing(body)) { sp -= 2; slide.style.setProperty('--spread', sp + 'px'); break; }
       }
     }
+    /* 사다리 ④: 글자는 그대로, 도형만 키움(원·셰브론·번호 점·가운데 원) */
+    slide.style.removeProperty('--shape');
+    if (slide.getAttribute('data-grow') !== 'no' && body.querySelector('.tk-circ, .tk-chvh, .tk-vdot, .tk-tldot, .tk-radcore, .tk-g2h, .tk-trk')) {
+      var sc = 1;
+      while (sc < 1.5 && emptiness(body).empty > 0.1) {
+        sc = +(sc + 0.1).toFixed(1); slide.style.setProperty('--shape', sc);
+        if (overflowing(body)) { sc = +(sc - 0.1).toFixed(1); slide.style.setProperty('--shape', sc); break; }
+      }
+    }
     /* 그래도 빈 면이 크면: 도식을 늘리지 않고 내용 높이로 줄인 뒤 남는 높이를 바깥 여백으로 */
     if (fs >= 12 && slide.getAttribute('data-grow') !== 'no' && emptiness(body).empty > 0.14) {
       slide.classList.add('tk-slack');

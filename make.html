@@ -25,7 +25,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.8</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.9</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -92,7 +92,7 @@
         return;
       }
       if (cur === deck.cover) return;
-      var KNOWN = /^(리드|서브메시지|본문구조|주도식|근거도식|본문|강조|받침|출처|시사점|물음|연결|근거|실행|비중|사실띠|근거띠)$/;
+      var KNOWN = /^(예비|리드|서브메시지|본문구조|주도식|근거도식|본문|강조|받침|출처|시사점|물음|연결|근거|실행|비중|사실띠|근거띠)$/;
       if (kv && !KNOWN.test(kv[1].replace(/\s/g, ''))) kv = null;
       if (kv && mode === 'body' && /^(근거|실행)$/.test(kv[1].replace(/\s/g, ''))) kv = null;
       if (kv) {
@@ -105,6 +105,7 @@
         else if (k === '주도식') cur.dmain = v;
         else if (k === '근거도식') cur.daux = v;
         else if (k === '본문') { mode = 'body'; sub = 'gap'; if (v) cur.cells.push({ name: v, items: [] }); }
+        else if (k === '예비') { var rv = /^([^|]{1,6})\s*\|\s*(.+)$/.exec(v); (cur.reserve = cur.reserve || []).push(rv ? { kind: rv[1].trim(), text: rv[2].trim() } : { kind: '수치', text: v }); }
         else if (k === '강조') cur.key = v;
         else if (k === '받침') cur.band = v;
         else if (k === '사실띠' || k === '근거띠') cur.facts = v;
@@ -449,7 +450,30 @@
   }
   function hashStr(x) { var h = 7; for (var i = 0; i < x.length; i++) h = (h * 31 + x.charCodeAt(i)) % 9973; return h; }
   /* 덱 전체 선택: 적합도 − (이미 쓴 형식 · 바로 앞 장과 같은 형식 · 같은 계열) 감점 */
+  var SHAPEY = /^(원형 묶음|셰브론 띠|방사형 카드|점선 타임라인|허브|세로 흐름|원인-결과|결과 카드|포지셔닝 맵|2단 단계|좌우 분할|상하 전환)$/, TEXTY = /^(표|평가표|사례 표|역할 라벨|카드 묶음|전환표|등급 매트릭스)$/;
+  function density(s) {
+    var txt = s.cells.map(function (c) { return c.name + ' ' + c.items.join(' '); }).join(' ');
+    var facts = (txt.match(NUMRE) || []).length + s.cells.reduce(function (a, c) { return a + c.items.filter(function (x) { return !/^결론/.test(x); }).length; }, 0);
+    var chars = txt.replace(/\s/g, '').length;
+    return { chars: chars, facts: facts, band: chars < 180 || facts < 9 ? 'low' : chars >= 280 && facts >= 12 ? 'high' : 'mid' };
+  }
+  /* 사다리 ①: 재료가 모자란 장에 예비 사실을 관련 칸부터 더함(원문 재료만) */
+  function useReserve(s) {
+    var R = (s.reserve || []).filter(function (r) { return /수치|사례|인용|사실/.test(r.kind); });
+    var C = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); });
+    (s.reserve || []).forEach(function (r) { var m = /^([^:：=]{1,6})\s*[:：=]\s*(.+)$/.exec(r.text); var d = design(s.dmain); if (/기준|기간|분모|위치|이동|차원/.test(r.kind) && m && d && !d.kv[m[1].trim()]) s.dmain += ' | ' + m[1].trim() + ': ' + m[2].trim(); });
+    if (!C.length || !R.length) return;
+    var dm = design(s.dmain), fixed = dm && /전환표|평가표|^표|사례|레인/.test(dm.name);
+    while (R.length && density(s).band === 'low') {
+      var r = R.shift(), words = r.text.replace(/[^가-힣A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(function (w) { return w.length >= 2; });
+      var best = C.slice().sort(function (a, b) { var sa = words.filter(function (w) { return (a.name + a.items.join('')).indexOf(w) >= 0; }).length, sb = words.filter(function (w) { return (b.name + b.items.join('')).indexOf(w) >= 0; }).length; return sb - sa || a.items.length - b.items.length; })[0];
+      if (fixed) { s.facts = (s.facts && !/^\s*없음/.test(s.facts) ? s.facts + ' / ' : '추가 근거 | ') + r.text; continue; }
+      var ci = best.items.findIndex(function (x) { return /^결론\s*[:：]/.test(x); }); if (ci < 0) ci = best.items.length;
+      best.items.splice(ci, 0, r.text);
+    }
+  }
   function chooseForms(deck, ov) {
+    deck.slides.forEach(function (s) { useReserve(s); s._dens = density(s); });
     var uses = {}, fam = {}, prev = '', salt = deck.cover ? deck.cover.title : '';
     deck.slides.forEach(function (s) {
       var d = design(s.dmain), C = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); });
@@ -461,6 +485,8 @@
         var cand = FORMS[shape].map(function (f) {
           var sc = formFit(f, d, C); if (!sc) return null;
           if (base === f.replace(/\s/g, '') && shape === 'eval') sc += 2;
+          if (s._dens.band === 'low') sc += SHAPEY.test(f) ? 6 : TEXTY.test(f) ? -6 : 0;
+          if (s._dens.band === 'high') sc += TEXTY.test(f) ? 4 : SHAPEY.test(f) ? -4 : 0;
           var pen = (uses[f] || 0) * 14 + (prev === f ? 20 : 0) + (fam[FAMILY[f]] || 0) * 5;
           return { f: f, s: sc - pen + (hashStr(salt + s.title + f) % 9), fit: sc };
         }).filter(Boolean).sort(function (a, b) { return b.s - a.s; });
@@ -791,7 +817,7 @@
     if (!auxHtml && auxCells.length && !(main && !isDataDesign(main) && !mainCells.length)) auxHtml = '<div class="tk-roles">' + auxCells.map(function (c) { return '<div><b>' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
     var out = '<div class="tk-mainwrap' + (s._hero && auxHtml && /tk-evidence/.test(auxHtml) ? ' tk-hero' : '') + '"><div class="tk-main">' + mainHtml + '</div>' + (auxHtml ? '<div class="tk-aux">' + auxHtml + '</div>' : '') + '</div>';
     out += (s._factsDone ? '' : factsHtml(s.facts, s._fv)) + bandHtml(s);
-    return { html: out, auto: true };
+    return { html: out, auto: true, layout: s._factsDone ? 3 : null };
   }
   function bandHtml(s) {
     var out = '', band = s.band.split(/\s*→\s*/)[0];
@@ -811,6 +837,7 @@
       var C = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); }), hasAux = !!s.daux || s.cells.length !== C.length;
       var wide = /^(표|평가표|사례 표|실행 카드|점수 막대|등급 매트릭스|중앙 축 비교|상하 전환|셰브론 띠|2단 단계|점선 타임라인|이동 트랙|2×2)$/.test(s._form || (design(s.dmain) || {}).name || '') || C.length > 3;
       var cand = rot.slice(ri).concat(rot.slice(0, ri)).filter(function (v) { return v !== prevFv && !(v === 'side' && (hasAux || wide)); });
+      if (s._dens && s._dens.band === 'low' && !hasAux && !wide && prevFv !== 'side') cand.unshift('side');
       s._fv = cand[0] || 'chips'; ri = (rot.indexOf(s._fv) + 1) % rot.length; prevFv = s._fv;
     });
     var title = deck.cover ? deck.cover.title : (deck.slides[0] ? deck.slides[0].title : 'TK 장표');
@@ -834,7 +861,7 @@
     }
     deck.slides.forEach(function (s, i) {
       var subs = s.subs.filter(function (x) { return x.kind !== '실행' || window.TK_SHOW_DO; }).map(function (x) { return '<p class="tk-sub' + (x.kind === '실행' ? ' tk-do' : '') + '">' + esc(x.kind === '실행' && !/^☞/.test(x.text) ? '☞ ' + x.text : x.text) + '</p>'; }).join('');
-      h.push('<section class="tk-slide" data-form="' + esc(s._used || '') + '"><h2 class="tk-title">' + esc(s.title) + '</h2><div class="tk-lead">' + (s.lead ? '<p class="tk-lead-main">' + esc(s.lead) + '</p>' : '') + subs + '</div>' + (function () { var bd = body(s, i); return typeof bd === 'string' ? '<div class="tk-body">' + bd + '</div>' : '<div class="tk-body tk-auto" style="flex-direction:column">' + bd.html + '</div>'; })() +
+      h.push('<section class="tk-slide" data-form="' + esc(s._used || '') + '"><h2 class="tk-title">' + esc(s.title) + '</h2><div class="tk-lead">' + (s.lead ? '<p class="tk-lead-main">' + esc(s.lead) + '</p>' : '') + subs + '</div>' + (function () { var bd = body(s, i); return typeof bd === 'string' ? '<div class="tk-body">' + bd + '</div>' : '<div class="tk-body tk-auto"' + (bd.layout != null ? ' data-layout="' + bd.layout + '"' : '') + ' style="flex-direction:column">' + bd.html + '</div>'; })() +
         (s.note ? '<p class="tk-note">' + esc(/^출처/.test(s.note) ? s.note : '출처 : ' + s.note) + '</p>' : '') + '</section>');
     });
     return docOf(title, h.join('\n'));
