@@ -700,3 +700,71 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-matrix{padding:0 0 calc(var(--fs) * 1.5 + 4px) calc(var(--fs) * 1.4 + 6px);}
 .tk-matrix>.tk-axis-x{height:auto;line-height:1.3;padding-top:2px;left:calc(var(--fs) * 1.4 + 6px);}
 .tk-matrix>.tk-axis-y{width:calc(var(--fs) * 1.4);bottom:calc(var(--fs) * 1.5 + 4px);letter-spacing:0;}
+
+/* ── v4.3 ───────────────────────────────────────── */
+/* 여유 모드에서 행이 0으로 접히던 문제: 내용 높이 기준으로 */
+.tk-slide.tk-slack .tk-main>.tk-grow>*{flex-basis:auto;}
+/* 중앙 축 비교 — 왼쪽 기존 · 가운데 차원 · 오른쪽 새 */
+.tk-bfly{display:flex;flex-direction:column;min-height:0;}
+.tk-bf{flex:1 1 0;display:grid;grid-template-columns:1fr var(--bf-mid,128px) 1fr;align-items:center;gap:14px;border-bottom:var(--hairline) solid var(--line-light);padding:5px 0;}
+.tk-bf.tk-bfh{flex:none;border-bottom:1.5px solid var(--green-mid);}
+.tk-bf.tk-bfh>b{text-align:right;color:var(--ink-label);} .tk-bf.tk-bfh>b.tk-to{text-align:left;color:var(--tab-green);}
+.tk-bf>span{color:var(--ink-soft);text-align:right;line-height:1.4;} .tk-bf>span.tk-to{color:var(--ink);font-weight:700;text-align:left;}
+.tk-bf>em{font-style:normal;text-align:center;padding:5px 6px;background:var(--navy-tint);color:var(--tab-navy);font-weight:700;font-size:calc(var(--fs) - 0.5px);border-radius:14px;}
+/* 2단 단계 — 번호 칸 3×2 */
+.tk-grid2{display:grid;grid-template-columns:repeat(var(--g2-c,3),minmax(0,1fr));grid-auto-rows:1fr;gap:var(--gap);min-height:0;}
+.tk-g2{display:flex;flex-direction:column;border:1px solid var(--line-light);padding:9px 12px;min-height:0;}
+.tk-g2h{display:flex;align-items:center;gap:9px;margin-bottom:6px;}
+.tk-g2h>.tk-vdot{flex:none;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--green-tint);color:var(--tab-green);border:2px solid var(--green-mid);box-sizing:border-box;font-family:var(--font-arial);font-size:calc(var(--fs) - 1px);}
+.tk-g2h>span{font-weight:700;color:var(--tab-green);line-height:1.3;}
+.tk-g2.tk-key{background:var(--green-tint);border-color:var(--green-mid);} .tk-g2.tk-key .tk-vdot{background:var(--tab-green);color:var(--on-fill);}
+/* 점선 타임라인 — 가로 선 위 번호 점, 아래 단 */
+.tk-tline{position:relative;display:grid;grid-template-columns:repeat(var(--tl-n,4),minmax(0,1fr));gap:var(--gap);min-height:0;padding-top:4px;}
+.tk-tline>.tk-tlbar{position:absolute;left:4%;right:4%;top:19px;height:0;border-top:2px dashed var(--line-dark);}
+.tk-tl{position:relative;display:flex;flex-direction:column;align-items:stretch;min-height:0;}
+.tk-tl>.tk-tldot{align-self:center;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--tab-green);border:2px solid var(--green-mid);box-sizing:border-box;font-family:var(--font-arial);z-index:1;}
+.tk-tl>.tk-tlh{margin:8px 0 6px;text-align:center;font-weight:700;color:var(--tab-green);font-size:calc(var(--fs) + 0.5px);line-height:1.3;}
+.tk-tl>.tk-list{flex:1 1 auto;background:#fafafa;padding:8px 10px;}
+.tk-tl.tk-key>.tk-tldot{background:var(--tab-green);color:var(--on-fill);}
+/* 방사형 카드 — 가운데 원, 양옆 칸 */
+.tk-radial{display:grid;grid-template-columns:1fr 150px 1fr;gap:16px;align-items:stretch;min-height:0;}
+.tk-radcol{display:flex;flex-direction:column;gap:var(--gap);min-height:0;}
+.tk-rad{flex:1 1 0;display:flex;flex-direction:column;border:1px solid var(--line-light);min-height:0;}
+.tk-rad>.tk-h{padding:6px 10px;background:var(--green-tint);color:var(--tab-green);font-weight:700;}
+.tk-rad>.tk-list{padding:6px 10px;}
+.tk-rad.tk-key{border-color:var(--green-mid);} .tk-rad.tk-key>.tk-h{background:var(--green-mid);color:var(--on-fill);}
+.tk-radcore{display:flex;align-items:center;justify-content:center;}
+.tk-radcore>b{width:150px;height:150px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;padding:14px;box-sizing:border-box;background:var(--navy-tint);color:var(--tab-navy);border:2px solid var(--navy-mid);line-height:1.3;}
+/* 등급 매트릭스 — 등급 원만, 근거는 오른쪽 열 */
+.tk-gmat td.c{text-align:center;}
+.tk-gb{display:inline-block;width:18px;height:18px;border-radius:50%;border:2px solid var(--tab-navy);box-sizing:border-box;vertical-align:middle;}
+.tk-gb.tk-g2{background:var(--tab-navy);} .tk-gb.tk-g1{background:linear-gradient(90deg,var(--tab-navy) 50%,#fff 50%);} .tk-gb.tk-g0{background:#fff;} .tk-gb.tk-gn{border-color:var(--line-light);}
+.tk-gmat .tk-gnote{text-align:left;color:var(--ink-soft);font-size:calc(var(--fs) - 1px);}
+.tk-gmat tr.tk-key .tk-gb.tk-g2{background:var(--tab-green);border-color:var(--tab-green);}
+/* 세로 인과 — 위에서 아래로, 사이 회색 삼각형 */
+.tk-vchain{display:flex;flex-direction:column;align-items:stretch;gap:3px;min-height:0;}
+.tk-vc{flex:1 1 0;display:grid;grid-template-columns:var(--vc-label,170px) 1fr;align-items:center;gap:14px;padding:6px 12px;background:var(--gray-tint);min-height:0;}
+.tk-vc>b{color:var(--tab-navy);font-size:calc(var(--fs) + 0.5px);}
+.tk-vc>.tk-sum{grid-column:2;margin-top:4px;}
+.tk-vc.tk-end{background:var(--green-tint);} .tk-vc.tk-end>b{color:var(--tab-green);}
+.tk-vc.tk-red{background:var(--red-tint);} .tk-vc.tk-red>b{color:var(--red-ink);}
+.tk-vcarrow{flex:none;align-self:center;width:44px;height:11px;background:var(--line);clip-path:polygon(0 0,100% 0,50% 100%);}
+/* 원인-결과 — 왼쪽 원인 묶음, 긴 회색 삼각형, 오른쪽 결과 */
+.tk-cause{display:flex;align-items:stretch;gap:12px;min-height:0;}
+.tk-causes{flex:1 1 0;display:flex;flex-direction:column;gap:var(--gap);min-width:0;}
+.tk-cz{flex:1 1 0;display:grid;grid-template-columns:var(--cz-label,130px) 1fr;gap:12px;align-items:center;padding:6px 12px;background:var(--gray-tint);min-height:0;}
+.tk-cz>b{color:var(--tab-navy);}
+.tk-cz>.tk-sum{grid-column:2;margin-top:4px;}
+.tk-cause>.tk-sparrow{flex:none;width:20px;align-self:stretch;background:var(--line);clip-path:polygon(0 0,100% 50%,0 100%);}
+.tk-effect{flex:0 0 32%;display:flex;flex-direction:column;justify-content:center;background:var(--green-tint);padding:12px 14px;}
+.tk-effect>.tk-h{font-weight:700;color:var(--tab-green);font-size:calc(var(--fs) + 2px);margin-bottom:8px;}
+.tk-effect.tk-red{background:var(--red-tint);} .tk-effect.tk-red>.tk-h{color:var(--red-ink);}
+/* 분해 카드 — 위 논점 띠, 아래 가지 칸 */
+.tk-decomp{display:flex;flex-direction:column;gap:10px;min-height:0;}
+.tk-dcroot{flex:none;padding:8px 14px;text-align:center;background:var(--navy-tint);color:var(--tab-navy);font-weight:700;font-size:calc(var(--fs) + 1px);}
+.tk-dcrow{flex:1 1 auto;display:grid;grid-template-columns:repeat(var(--dc-n,3),minmax(0,1fr));gap:var(--gap);min-height:0;}
+.tk-dc{display:flex;flex-direction:column;border-top:2px solid var(--navy-mid);background:#fafafa;min-height:0;}
+.tk-dc>.tk-h{padding:7px 10px 4px;font-weight:700;color:var(--tab-navy);}
+.tk-dc>.tk-list{padding:4px 10px 8px;}
+.tk-dc.tk-key{border-top-color:var(--tab-green);background:var(--green-tint);} .tk-dc.tk-key>.tk-h{color:var(--tab-green);}
+.tk-effect>.tk-h{background:none!important;padding:0;color:var(--tab-green);text-align:left;}

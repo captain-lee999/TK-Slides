@@ -113,7 +113,7 @@
     });
   }
 
-  var BOXOV = '.tk-main, .tk-aux, .tk-card, .tk-list, .tk-sp, .tk-tr > span, .tk-vf, .tk-ccols > div, .tk-rc, .tk-road li, .tk-pillars > div, .tk-node, .tk-q, .tk-branch, .tk-roles > div, .tk-lc, .tk-sr > span, td, th, .tk-cnode, .tk-spoke, .tk-ev, .tk-steps > li, .tk-case > span, .tk-sum, .tk-facts > div';
+  var BOXOV = '.tk-main, .tk-aux, .tk-card, .tk-list, .tk-sp, .tk-tr > span, .tk-vf, .tk-ccols > div, .tk-rc, .tk-road li, .tk-bf > span, .tk-g2, .tk-tl, .tk-rad, .tk-vc, .tk-cz, .tk-effect, .tk-dc, .tk-pillars > div, .tk-node, .tk-q, .tk-branch, .tk-roles > div, .tk-lc, .tk-sr > span, td, th, .tk-cnode, .tk-spoke, .tk-ev, .tk-steps > li, .tk-case > span, .tk-sum, .tk-facts > div';
   function overflowing(body) {
     if (body.scrollHeight > body.clientHeight + 2) return true;
     var br = body.getBoundingClientRect(), bx = body.querySelectorAll(BOXOV);
@@ -149,7 +149,8 @@
     }
     /* 빈 면이 많으면 글자를 키워 면을 채움(최대 14px) */
     if (fs === 13 && slide.getAttribute('data-grow') !== 'no') {
-      while (fs < 16 && emptiness(body).empty > 0.1) {
+      var cap = emptiness(body).empty > 0.3 ? 18 : 16;
+      while (fs < cap && emptiness(body).empty > 0.1) {
         fs += 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 13) * 0.04).toFixed(2));
         if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 13) * 0.04).toFixed(2)); break; }
       }
@@ -384,7 +385,7 @@
     { dir: 'row-reverse', m: '1 1 0', a: '0 0 26%' }
   ];
   var prevDir = null;
-  var BOXES = '.tk-list, .tk-ev, .tk-q, .tk-node, td, .tk-cnode, .tk-spoke, .tk-from, .tk-to, .tk-lc, .tk-branch > b, .tk-sr > span, .tk-ccols > div, .tk-rfrom, .tk-rto, .tk-sp, .tk-chvb > div, .tk-acr, .tk-udc, .tk-card, .tk-pillars > div';
+  var BOXES = '.tk-g2, .tk-tl > .tk-list, .tk-rad, .tk-vc, .tk-cz, .tk-effect, .tk-dc, .tk-list, .tk-ev, .tk-q, .tk-node, td, .tk-cnode, .tk-spoke, .tk-from, .tk-to, .tk-lc, .tk-branch > b, .tk-sr > span, .tk-ccols > div, .tk-rfrom, .tk-rto, .tk-sp, .tk-chvb > div, .tk-acr, .tk-udc, .tk-card, .tk-pillars > div';
   function emptiness(body) {
     var br = body.getBoundingClientRect(), area = br.width * br.height, rg = document.createRange(), empty = 0, cramp = 0;
     body.querySelectorAll(BOXES).forEach(function (b) {
