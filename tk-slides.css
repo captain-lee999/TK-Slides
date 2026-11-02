@@ -824,3 +824,8 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-toc .tk-parts{flex:0 0 auto;}
 .tk-aux:has(>.tk-factcol){justify-content:center;}
 .tk-aux>.tk-factcol{flex:0 0 auto;margin-top:auto;margin-bottom:auto;}
+/* v4.8 여백 퍼짐: 빈 면을 줄 사이와 칸 안 여백으로 채움 */
+.tk-list>li+li{margin-top:var(--spread,0px);}
+.tk-card,.tk-sp,.tk-g2,.tk-rad,.tk-dc,.tk-vf,.tk-vc,.tk-cz,.tk-ccols>div,.tk-chvb>div,.tk-pillars>div,.tk-ac{padding-top:calc(var(--spread,0px) / 2 + 8px);padding-bottom:calc(var(--spread,0px) / 2 + 8px);}
+.tk-table td,.tk-table th{padding-top:calc(var(--spread,0px) / 2 + 4px);padding-bottom:calc(var(--spread,0px) / 2 + 4px);}
+.tk-sr>span,.tk-tr,.tk-bf{padding-top:calc(var(--spread,0px) / 2 + 4px);padding-bottom:calc(var(--spread,0px) / 2 + 4px);}

@@ -155,6 +155,15 @@
         if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 12) * 0.03).toFixed(2)); break; }
       }
     }
+    /* 글자는 14까지만 — 그래도 비면 줄 사이·칸 안 여백을 넓혀 고르게 채움(글자 크기 통일 유지) */
+    slide.style.removeProperty('--spread');
+    if (fs >= 12 && slide.getAttribute('data-grow') !== 'no') {
+      var sp = 0;
+      while (sp < 14 && emptiness(body).empty > 0.1) {
+        sp += 2; slide.style.setProperty('--spread', sp + 'px');
+        if (overflowing(body)) { sp -= 2; slide.style.setProperty('--spread', sp + 'px'); break; }
+      }
+    }
     /* 그래도 빈 면이 크면: 도식을 늘리지 않고 내용 높이로 줄인 뒤 남는 높이를 바깥 여백으로 */
     if (fs >= 12 && slide.getAttribute('data-grow') !== 'no' && emptiness(body).empty > 0.14) {
       slide.classList.add('tk-slack');
