@@ -26,7 +26,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.1</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.2</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -607,6 +607,34 @@
     if (/카드|병렬/.test(nm)) return head + '<div class="tk-cards tk-grow">' + C.map(function (c, i) { return '<div class="tk-card' + (i === ki ? ' tk-key' : /기존|현행|전통|AS-IS|평균/.test(c.name) ? ' tk-gray' : '') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
     return null;
   }
+  function bigHtml(b) { var m = /^([+\-]?[\d,.~∼]+(?:\s?[만천억조])?)\s*(.*)$/.exec(b); return m && m[2] ? esc(m[1]) + '<span class="tk-su">' + esc(m[2]) + '</span>' : esc(b); }
+  /* 큰 숫자 판단: ① 리드·강조와 연결 ② 크기 기준 ③ 결정 관련(조사 방법 수치 아님) ④ 리드 되풀이 아님 — 못 넘으면 근거 줄로 */
+  var METH = /참여|조사|대상|표본|응답|논문|연구|실험|인원|문헌|인터뷰|설문/;
+  function gateNums(deck) {
+    deck.slides.forEach(function (s) {
+      s._gated = [];
+      ['daux', 'dmain'].forEach(function (k) {
+        var d = design(s[k]); if (!d || !/수치|타일|KPI|큰수치/i.test(d.name)) return;
+        var isMain = k === 'dmain', keep = [], move = [], lead = (s.lead || '').replace(/\s/g, ''), key = (s.key || '').replace(/\s/g, '');
+        list(d.kv['값']).forEach(function (v) {
+          var vv = v.replace(/^([^|]+?)\s*\|\s*/, '$1 '), f = firstNum(vv);
+          if (!f || /문장|가지|단계|유형/.test(f.big)) { s._gated.push(vv + ' (숫자 아님)'); return; }
+          var n = f.big.replace(/[\s+]/g, ''), inKey = key && (key.indexOf(n) >= 0 || n.indexOf(key) >= 0), inLead = lead.indexOf(n) >= 0;
+          if (METH.test(f.label) && !inKey) { move.push(vv); s._gated.push(vv + ' (조사 방법 수치)'); return; }
+          if (isMain || inKey) { keep.push(v); return; }
+          if (inLead) { s._gated.push(vv + ' (리드와 중복)'); return; }
+          move.push(vv); s._gated.push(vv + ' (리드·강조와 연결 없음)');
+        });
+        if (!isMain && keep.length > 1) { move = move.concat(keep.slice(1)); keep = keep.slice(0, 1); }
+        if (move.length) {
+          var g = s.subs.find(function (x) { return x.kind === '근거'; }), add = move.join(' · ');
+          if (g) g.text = add + ' · ' + g.text; else s.subs.unshift({ kind: '근거', text: add });
+        }
+        s[k] = keep.length ? d.raw.replace(/값\s*[:：][^|]*/, '값: ' + keep.join(' / ')) : '';
+        if (!isMain && keep.length === 1) s._hero = 1;
+      });
+    });
+  }
   function drawData(d, s, used) {
     var nm = d.name, kv = d.kv, vals = list(kv['값']);
     var head = unitHead(d, '');
@@ -624,7 +652,7 @@
           var sq = ''; for (var q = 0; q < +den[1]; q++) sq += '<i' + (q < num ? ' class="on"' : '') + '></i>';
           return '<div class="tk-ev tk-ratio' + (key ? ' tk-key' : '') + '"><span class="tk-big">' + esc(f.big) + '<small>/' + den[1] + '</small></span><div class="tk-pict">' + sq + '</div><b>' + esc(lab) + '</b></div>';
         }
-        return '<div class="tk-ev' + (key ? ' tk-key' : '') + (f.big.length > 6 ? ' tk-evlong' : '') + '"><span class="tk-big">' + esc(f.big) + (dl ? '<span class="tk-delta' + (/^-/.test(dl[1]) ? ' tk-down' : '') + '">' + esc(dl[1]) + '</span>' : '') + '</span><b>' + esc(lab) + '</b></div>';
+        return '<div class="tk-ev' + (key ? ' tk-key' : '') + (f.big.length > 6 ? ' tk-evlong' : '') + '"><span class="tk-big">' + bigHtml(f.big) + (dl ? '<span class="tk-delta' + (/^-/.test(dl[1]) ? ' tk-down' : '') + '">' + esc(dl[1]) + '</span>' : '') + '</span><b>' + esc(lab) + '</b></div>';
       }).join('') + '</div>' + (kv['결론'] ? '<div class="tk-concl">' + esc(kv['결론']) + '</div>' : '');
     }
     if (/워터폴|브리지/.test(nm)) {
@@ -675,7 +703,7 @@
       else if (auxCells.length) auxHtml = draw(aux, auxCells, s, used) || '';
     }
     if (!auxHtml && auxCells.length && !(main && !isDataDesign(main) && !mainCells.length)) auxHtml = '<div class="tk-roles">' + auxCells.map(function (c) { return '<div><b>' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
-    var out = '<div class="tk-mainwrap"><div class="tk-main">' + mainHtml + '</div>' + (auxHtml ? '<div class="tk-aux">' + auxHtml + '</div>' : '') + '</div>';
+    var out = '<div class="tk-mainwrap' + (s._hero && auxHtml && /tk-evidence/.test(auxHtml) ? ' tk-hero' : '') + '"><div class="tk-main">' + mainHtml + '</div>' + (auxHtml ? '<div class="tk-aux">' + auxHtml + '</div>' : '') + '</div>';
     out += factsHtml(s.facts) + bandHtml(s);
     return { html: out, auto: true };
   }
@@ -688,7 +716,7 @@
   /* ── 3. HTML 만들기 ─────────────────────── */
   function build(deck, ov) {
     var h = [];
-    chooseForms(deck, ov || {});
+    gateNums(deck); chooseForms(deck, ov || {});
     var title = deck.cover ? deck.cover.title : (deck.slides[0] ? deck.slides[0].title : 'TK 장표');
     if (deck.cover) {
       var parts = deck.cover.sub.split(/\s*[·|]\s*/), date = '', subt = deck.cover.sub;
@@ -824,6 +852,7 @@
       if (m && +m[1] >= 2 && +m[1] <= 9 && C.length && dm && !isDataDesign(dm) && !/^표|평가표/.test(dm.name) && +m[1] !== C.length) w.push(no + ': 「' + m[0].trim() + '」인데 칸이 ' + C.length + '개');
       [s.dmain, s.daux].forEach(function (ln) { var dd = design(ln); if (dd && /수치|타일/.test(dd.name)) list(dd.kv['값']).forEach(function (v) { if (!firstNum(v)) w.push(no + ': 수치 타일 「' + v.slice(0, 18) + '」을 수치로 읽지 못함'); }); });
     });
+    d.slides.forEach(function (s, i) { if (s._gated && s._gated.length) w.push((i + 1) + '장: 큰 숫자 기준 미달 → ' + s._gated.map(function (x) { return x.slice(0, 26); }).join(', ')); });
     if (ns >= 4 && fact > Math.ceil(ns / 2)) w.push('사실 띠가 본문 ' + ns + '장 중 ' + fact + '장 — 절반 이하 권장');
     if (/실행\s*[:：]\s*☞|^\s*-\s*☞/m.test(src)) w.push('실행(☞) 줄은 장표에 표시하지 않음');
     $('lint').innerHTML = w.length ? '<p><b>원고 점검</b></p>' + w.map(function (x) { return '<p>· ' + esc(x) + '</p>'; }).join('') : '';

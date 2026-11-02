@@ -136,8 +136,8 @@
   function fit(slide) {
     var body = slide.querySelector('.tk-body');
     if (!body) return;
-    var fs = 12;
-    slide.removeAttribute('data-overflow');
+    var fs = 13;
+    slide.removeAttribute('data-overflow'); slide.classList.remove('tk-slack');
     slide.style.setProperty('--fs', fs + 'px');
     slide.style.setProperty('--gap', '8px');
     slide.style.removeProperty('--lh');
@@ -148,11 +148,16 @@
       slide.style.setProperty('--lh', '1.36');
     }
     /* 빈 면이 많으면 글자를 키워 면을 채움(최대 14px) */
-    if (fs === 12 && slide.getAttribute('data-grow') !== 'no') {
-      while (fs < 15 && emptiness(body).empty > 0.24) {
-        fs += 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 12) * 0.05).toFixed(2));
-        if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 12) * 0.05).toFixed(2)); break; }
+    if (fs === 13 && slide.getAttribute('data-grow') !== 'no') {
+      while (fs < 16 && emptiness(body).empty > 0.1) {
+        fs += 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 13) * 0.04).toFixed(2));
+        if (overflowing(body)) { fs -= 0.5; slide.style.setProperty('--fs', fs + 'px'); slide.style.setProperty('--gap', Math.round(fs * 0.7) + 'px'); slide.style.setProperty('--lh', (1.45 + (fs - 13) * 0.04).toFixed(2)); break; }
       }
+    }
+    /* 그래도 빈 면이 크면: 도식을 늘리지 않고 내용 높이로 줄인 뒤 남는 높이를 바깥 여백으로 */
+    if (fs >= 13 && slide.getAttribute('data-grow') !== 'no' && emptiness(body).empty > 0.14) {
+      slide.classList.add('tk-slack');
+      if (overflowing(body)) slide.classList.remove('tk-slack');
     }
     slide.setAttribute('data-fs', fs);
     if (overflowing(body)) slide.setAttribute('data-overflow', 'yes');
@@ -379,7 +384,7 @@
     { dir: 'row-reverse', m: '1 1 0', a: '0 0 26%' }
   ];
   var prevDir = null;
-  var BOXES = '.tk-list, .tk-ev, .tk-q, .tk-node, td, .tk-cnode, .tk-spoke, .tk-from, .tk-to, .tk-lc, .tk-branch > b, .tk-sr > span';
+  var BOXES = '.tk-list, .tk-ev, .tk-q, .tk-node, td, .tk-cnode, .tk-spoke, .tk-from, .tk-to, .tk-lc, .tk-branch > b, .tk-sr > span, .tk-ccols > div, .tk-rfrom, .tk-rto, .tk-sp, .tk-chvb > div, .tk-acr, .tk-udc, .tk-card, .tk-pillars > div';
   function emptiness(body) {
     var br = body.getBoundingClientRect(), area = br.width * br.height, rg = document.createRange(), empty = 0, cramp = 0;
     body.querySelectorAll(BOXES).forEach(function (b) {

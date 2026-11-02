@@ -488,7 +488,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-list li.tk-meter::before{display:none;}
 .tk-list li.tk-meter>i{display:block;height:9px;background:linear-gradient(90deg,var(--tab-navy) var(--v),var(--gray-tint,#e9e9e9) var(--v));}
 .tk-list li.tk-meter>b{font-family:var(--font-arial);color:var(--tab-navy);}
-.tk-sum{flex:none;margin-top:auto;padding:6px 10px;background:var(--green-tint);font-weight:700;color:var(--tab-green);font-size:calc(var(--fs) - 0.5px);line-height:1.3;}
+.tk-sum{flex:none;margin-top:10px;padding:6px 10px;background:var(--green-tint);font-weight:700;color:var(--tab-green);font-size:calc(var(--fs) - 0.5px);line-height:1.3;}
 .tk-roles .tk-sum,.tk-branch .tk-sum{background:var(--navy-tint);border-color:var(--tab-navy);color:var(--tab-navy);}
 .tk-red .tk-sum,.tk-sum.tk-red{background:var(--red-tint);border-color:var(--red-ink);color:var(--red-ink);}
 .tk-pillars>div,.tk-steps>li,.tk-chain>.tk-node,.tk-card{display:flex;flex-direction:column;}
@@ -602,7 +602,7 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-rc>.tk-rfrom,.tk-rc>.tk-rto{flex:1 1 0;display:flex;flex-direction:column;justify-content:center;padding:8px 12px;line-height:1.4;}
 .tk-rc>.tk-rfrom{background:var(--gray-tint);color:var(--ink-soft);}
 .tk-rc>.tk-rto{background:var(--green-tint);color:var(--ink);}
-.tk-rc b{display:block;font-weight:700;margin-bottom:2px;}
+.tk-rc>div>b:first-child{display:block;font-weight:700;margin-bottom:2px;}
 .tk-rc>.tk-rfrom>b{color:var(--ink-label);} .tk-rc>.tk-rto>b{color:var(--tab-green);}
 .tk-rc>.tk-rarrow{flex:none;align-self:center;width:34px;height:14px;margin:3px 0;background:var(--line);clip-path:polygon(0 0,100% 0,50% 100%);}
 /* 수치 타일 보정: 긴 값 · 글 타일 · 비율 칸 */
@@ -676,3 +676,27 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 /* 좌우 배치에서 근거 수치 타일은 세로로 쌓음 */
 .tk-mainwrap[style*="row"]>.tk-aux>.tk-evidence{flex-direction:column;}
 .tk-mainwrap[style*="row"]>.tk-aux>.tk-evidence>.tk-ev>.tk-big{font-size:32px;}
+
+/* ── v4.2 수치 표기 · 균형 ───────────────────────── */
+/* 수치 강조는 상자 없이: 큰 숫자 + 작은 단위 + 아래 회색 라벨, 숫자 사이는 여백 */
+.tk-evidence{gap:28px;align-items:flex-start;}
+.tk-ev,.tk-ev.tk-key,.tk-ev.tk-dim,.tk-ev.tk-red{background:none;padding:0;justify-content:flex-start;}
+.tk-ev>.tk-big{font-size:44px;color:var(--tab-navy);letter-spacing:-1px;}
+.tk-ev>.tk-big>.tk-su{font-size:.42em;margin-left:3px;letter-spacing:0;}
+.tk-ev.tk-key>.tk-big{color:var(--tab-green);}
+.tk-ev>b,.tk-ev.tk-key>b{margin-top:8px;font-weight:400;color:var(--ink-label);font-size:calc(var(--fs) - 0.5px);line-height:1.45;}
+.tk-ev.tk-key>.tk-list>li{color:var(--ink-soft);}
+.tk-evidence>.tk-ev:only-child{flex-direction:column;align-items:flex-start;}
+/* 큰 숫자 하나 = 도식 옆 기둥, 세로 가운데 */
+.tk-body.tk-auto>.tk-mainwrap.tk-hero{flex-direction:row-reverse!important;gap:30px;}
+.tk-body.tk-auto>.tk-mainwrap.tk-hero>.tk-main{flex:1 1 0!important;}
+.tk-body.tk-auto>.tk-mainwrap.tk-hero>.tk-aux{flex:0 0 22%!important;display:flex;flex-direction:column;justify-content:center;}
+.tk-mainwrap.tk-hero>.tk-aux>.tk-evidence{flex:none;}
+.tk-mainwrap.tk-hero .tk-ev>.tk-big{font-size:64px!important;line-height:.95;letter-spacing:-2px;}
+/* 남는 높이는 상자 안이 아니라 바깥으로 */
+.tk-slide.tk-slack .tk-main>.tk-grow,.tk-slide.tk-slack .tk-body:not(.tk-auto)>.tk-grow{flex:0 1 auto;margin-top:auto;margin-bottom:auto;}
+.tk-slide.tk-slack .tk-main{display:flex;flex-direction:column;}
+/* 2×2 축 글자: 글자 크기를 따라 커지게(고정 16px가 글자 확대를 막던 문제) */
+.tk-matrix{padding:0 0 calc(var(--fs) * 1.5 + 4px) calc(var(--fs) * 1.4 + 6px);}
+.tk-matrix>.tk-axis-x{height:auto;line-height:1.3;padding-top:2px;left:calc(var(--fs) * 1.4 + 6px);}
+.tk-matrix>.tk-axis-y{width:calc(var(--fs) * 1.4);bottom:calc(var(--fs) * 1.5 + 4px);letter-spacing:0;}
