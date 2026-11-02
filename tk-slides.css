@@ -534,3 +534,99 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-table td small{font-size:calc(var(--fs) - 1px);}
 .tk-sum{padding:7px 12px;}
 .tk-facts>div{padding:6px 12px;}
+
+/* ── v4.0 표현 풀: 새 형식 ───────────────────────────── */
+/* 좌우 분할 — 두 면 사이 세로로 긴 회색 삼각형 하나 */
+.tk-split{display:flex;align-items:stretch;gap:12px;min-height:0;}
+.tk-split>.tk-sp{flex:1 1 0;min-width:0;display:flex;flex-direction:column;background:var(--gray-tint);padding:0 0 10px;}
+.tk-split>.tk-sp>.tk-h{padding:7px 12px;background:#d9d9d9;color:var(--ink);font-weight:700;text-align:center;}
+.tk-split>.tk-sp.tk-sp-to{background:var(--green-tint);}
+.tk-split>.tk-sp.tk-sp-to>.tk-h{background:var(--green-mid);color:var(--on-fill);}
+.tk-split>.tk-sp>.tk-list{flex:1 1 auto;padding:10px 14px 0;justify-content:space-evenly;display:flex;flex-direction:column;}
+.tk-split>.tk-sp>.tk-sum{margin:6px 12px 0;}
+.tk-split>.tk-sparrow{flex:none;width:20px;align-self:stretch;background:var(--line);clip-path:polygon(0 0,100% 50%,0 100%);}
+/* 이동 트랙 — 기존(회색) ○──● 새(녹색) */
+.tk-track{display:flex;flex-direction:column;min-height:0;}
+.tk-track>.tk-tr{flex:1 1 0;display:grid;grid-template-columns:var(--track-label,112px) 1fr 70px 1fr;align-items:center;gap:10px;border-bottom:var(--hairline) solid var(--line-light);padding:4px 0;}
+.tk-track.tk-nolabel>.tk-tr{grid-template-columns:0 1fr 70px 1fr;}
+.tk-track>.tk-tr.tk-th{flex:none;border-bottom:1.5px solid var(--green-mid);padding:4px 0 5px;font-weight:700;}
+.tk-track>.tk-tr.tk-th>span:nth-child(2){color:var(--ink-label);text-align:right;}
+.tk-track>.tk-tr.tk-th>span:nth-child(4){color:var(--tab-green);}
+.tk-track>.tk-tr>span:first-child{font-weight:700;color:var(--tab-navy);}
+.tk-track>.tk-tr>span:nth-child(2){color:var(--ink-soft);text-align:right;}
+.tk-track>.tk-tr>span:nth-child(4){font-weight:700;color:var(--ink);}
+.tk-trk{position:relative;height:14px;}
+.tk-trk>.tk-tl{position:absolute;left:7px;right:7px;top:6px;height:2px;background:var(--line);}
+.tk-trk>.tk-t0,.tk-trk>.tk-t1{position:absolute;top:0;width:14px;height:14px;border-radius:50%;}
+.tk-trk>.tk-t0{left:0;background:#fff;border:2px solid var(--line-dark);box-sizing:border-box;}
+.tk-trk>.tk-t1{right:0;background:var(--green-mid);}
+/* 세로 흐름 — 번호 원이 세로선 위에, 오른쪽에 이름과 줄 */
+.tk-vflow{position:relative;display:flex;flex-direction:column;gap:8px;min-height:0;}
+.tk-vflow>.tk-vline{position:absolute;left:17px;top:18px;bottom:18px;width:2px;background:var(--line);}
+.tk-vflow>.tk-vf{position:relative;flex:1 1 0;min-height:0;display:grid;grid-template-columns:36px var(--vf-label,150px) 1fr;align-items:center;gap:12px;background:#fff;border:1px solid var(--line-light);padding:6px 12px 6px 0;margin-left:0;}
+.tk-vflow>.tk-vf>.tk-vdot{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--green-tint);color:var(--tab-green);border:2px solid var(--green-mid);box-sizing:border-box;font-family:var(--font-arial);margin-left:-1px;}
+.tk-vflow>.tk-vf>.tk-vh{font-weight:700;color:var(--tab-green);font-size:calc(var(--fs) + 1px);}
+.tk-vflow>.tk-vf>.tk-sum{grid-column:3;margin-top:0;}
+.tk-vflow>.tk-vf.tk-key{border-color:var(--green-mid);background:var(--green-tint);}
+.tk-vflow>.tk-vf.tk-key>.tk-vdot{background:var(--tab-green);color:var(--on-fill);}
+/* 원형 묶음 — 겹친 원 + 원 아래 같은 폭의 단 */
+.tk-circles{display:flex;flex-direction:column;gap:8px;min-height:0;}
+.tk-circles>.tk-ctop{flex:none;text-align:center;font-weight:700;color:var(--tab-green);padding:4px 0;border-bottom:1.5px solid var(--green-mid);}
+.tk-circles>.tk-crow,.tk-circles>.tk-ccols{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));}
+.tk-circles>.tk-crow{flex:none;justify-items:center;}
+.tk-circ{width:min(118px,92%);aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;border:2px solid var(--green-mid);background:#fff;color:var(--tab-green);font-size:calc(var(--fs) + 2px);line-height:1.25;box-sizing:border-box;}
+.tk-circ.tk-key{background:var(--tab-green);border-color:var(--tab-green);color:var(--on-fill);}
+.tk-circles>.tk-ccols{flex:1 1 auto;gap:var(--gap);min-height:0;}
+.tk-circles>.tk-ccols>div{display:flex;flex-direction:column;background:var(--gray-tint);padding:8px 12px;min-height:0;}
+.tk-circles>.tk-cbase{flex:none;text-align:center;padding:5px;background:var(--green-tint);color:var(--tab-green);font-weight:700;}
+/* 포지셔닝 맵 — 두 기준 위의 점 */
+.tk-pmap{position:relative;display:flex;flex-direction:column;min-height:200px;padding:0 0 22px 24px;}
+.tk-pfield{position:relative;flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;border-left:1.5px solid var(--line-dark);border-bottom:1.5px solid var(--line-dark);}
+.tk-pq{background:#f7f7f7;}
+.tk-pq.tk-pq-hi{background:var(--green-tint);}
+.tk-pdot{position:absolute;display:grid;grid-template-columns:14px 190px;column-gap:7px;align-items:center;transform:translate(-7px,-7px);}
+.tk-pdot.tk-pl{grid-template-columns:190px 14px;transform:translate(7px,-7px);text-align:right;}
+.tk-pdot.tk-pl>i{grid-column:2;grid-row:1/3;} .tk-pdot.tk-pl>b,.tk-pdot.tk-pl>span{grid-column:1;}
+.tk-pdot>i{grid-row:1/3;width:14px;height:14px;border-radius:50%;background:var(--tab-navy);}
+.tk-pdot>b{color:var(--tab-navy);font-size:calc(var(--fs) + 0.5px);line-height:1.2;}
+.tk-pdot:not(.tk-pl)>span{grid-column:2;} .tk-pdot>span{font-size:calc(var(--fs) - 1.5px);color:var(--ink-soft);line-height:1.25;}
+.tk-pdot.tk-key>i{background:var(--tab-green);} .tk-pdot.tk-key>b{color:var(--tab-green);}
+.tk-pax{position:absolute;font-size:calc(var(--fs) - 1px);font-weight:700;color:var(--ink-label);}
+.tk-pax-x{left:24px;right:0;bottom:2px;text-align:right;}
+.tk-pax-y{left:30px;top:4px;z-index:1;}
+.tk-pnote{position:absolute;left:24px;bottom:2px;font-size:calc(var(--fs) - 2px);color:var(--ink-label);}
+/* 결과 카드 — 이전(회색) ▼ 결과(녹색) */
+.tk-rcards{display:flex;gap:var(--gap);min-height:0;}
+.tk-rcards>.tk-rc{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:stretch;border:1px solid var(--line-light);}
+.tk-rc>.tk-h{padding:7px 10px;background:var(--navy-tint);color:var(--tab-navy);font-weight:700;text-align:center;}
+.tk-rc>.tk-rfrom,.tk-rc>.tk-rto{flex:1 1 0;display:flex;flex-direction:column;justify-content:center;padding:8px 12px;line-height:1.4;}
+.tk-rc>.tk-rfrom{background:var(--gray-tint);color:var(--ink-soft);}
+.tk-rc>.tk-rto{background:var(--green-tint);color:var(--ink);}
+.tk-rc b{display:block;font-weight:700;margin-bottom:2px;}
+.tk-rc>.tk-rfrom>b{color:var(--ink-label);} .tk-rc>.tk-rto>b{color:var(--tab-green);}
+.tk-rc>.tk-rarrow{flex:none;align-self:center;width:34px;height:14px;margin:3px 0;background:var(--line);clip-path:polygon(0 0,100% 0,50% 100%);}
+/* 수치 타일 보정: 긴 값 · 글 타일 · 비율 칸 */
+.tk-ev>.tk-big{white-space:normal;overflow-wrap:anywhere;}
+.tk-ev.tk-evlong>.tk-big{font-size:28px;}
+.tk-ev>.tk-big small{font-size:18px;color:var(--ink-label);}
+.tk-ev.tk-evtext{justify-content:center;} .tk-ev.tk-evtext>b{font-size:calc(var(--fs) + 1px);color:var(--tab-navy);margin:0;}
+.tk-ev.tk-ratio{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:14px;align-items:center;}
+.tk-ev.tk-ratio>.tk-big{grid-row:1/3;}
+.tk-pict{display:grid;grid-template-columns:repeat(10,12px);gap:3px;}
+.tk-pict>i{width:12px;height:12px;background:#fff;border:1px solid var(--navy-mid);box-sizing:border-box;}
+.tk-pict>i.on{background:var(--tab-navy);border-color:var(--tab-navy);}
+.tk-ev.tk-ratio>b{margin:4px 0 0;}
+.tk-ev.tk-key .tk-pict>i.on{background:var(--amber-point);border-color:var(--amber-point);}
+/* 로드맵 띠 — 단계 셰브론 */
+.tk-road{flex:none;display:flex;align-items:stretch;margin-top:var(--gap);}
+.tk-road>.tk-fl{flex:none;display:flex;align-items:center;justify-content:center;width:86px;padding:4px 6px;background:var(--navy-tint);color:var(--tab-navy);text-align:center;font-size:calc(var(--fs) - 1px);}
+.tk-road>ol{flex:1 1 auto;display:flex;gap:4px;margin:0;padding:0 0 0 6px;list-style:none;}
+.tk-road li{flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
+.tk-road li>b{display:block;padding:3px 18px 3px 10px;background:var(--green-mid);color:var(--on-fill);font-size:calc(var(--fs) - 1px);clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%);}
+.tk-road li>span{padding:3px 4px 0 10px;font-size:calc(var(--fs) - 1.5px);line-height:1.3;color:var(--ink-label);}
+/* 진한 면은 한 장에 하나: 실행 표 · 사례 행 머리는 옅은 면 */
+.tk-table.tk-action tbody th{background:var(--green-tint);color:var(--tab-green);}
+.tk-case>b{background:var(--navy-tint);color:var(--tab-navy);}
+/* 평가표: 등급 표식을 글 왼쪽에 · 범례 */
+.tk-table td.c .tk-ball{margin-right:4px;vertical-align:-1px;font-size:calc(var(--fs) + 3px);}
+.tk-legend-g{flex:none;text-align:right;font-size:calc(var(--fs) - 2px);color:var(--ink-label);margin-bottom:3px;}

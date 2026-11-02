@@ -16,14 +16,19 @@
   button.main{background:var(--g);} button.sub{background:#7f7f7f;}
   #msg{font-size:12px;color:#595959;min-height:18px;}
   #msg.err{color:#c00000;}
+  #forms{font-size:12px;max-height:30vh;overflow:auto;}
+  #forms div{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #e3e3e3;}
+  #forms span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #forms em{font-style:normal;color:var(--g);font-weight:700;white-space:nowrap;}
+  #forms button{padding:3px 8px;font-size:11px;}
   iframe{flex:1;width:100%;border:1px solid var(--line);border-radius:6px;background:#e9e9e9;}
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v3.8</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.0</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
-    <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;  - 실행: ☞ …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
+    <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
     <div class="btns">
       <button class="main" id="go">장표 만들기</button>
       <button id="open">새 창으로 열기</button>
@@ -31,6 +36,7 @@
       <button class="sub" id="clear">지우기</button>
     </div>
     <div id="msg"></div>
+    <div id="forms"></div>
   </div>
   <div class="pane"><iframe id="view" title="장표 미리보기"></iframe></div>
 </main>
@@ -293,7 +299,10 @@
   function factsHtml(v) {
     if (!v || /^\s*없음\s*$/.test(v)) return '';
     var p = v.split('|'), lab = p.length > 1 ? p[0].trim() : '근거 자료', rest = (p.length > 1 ? p.slice(1).join('|') : v);
-    var cells = rest.split(/\s*\/\s*/).filter(Boolean).map(function (c) { var m = /^([^:：]{1,14})\s*[:：]\s*(.+)$/.exec(c.trim()); return m ? '<div><b>' + esc(m[1]) + '</b><span>' + numEm(esc(m[2])) + '</span></div>' : '<div><span>' + numEm(esc(c)) + '</span></div>'; });
+    var parts = rest.split(/\s*\/\s*/).filter(Boolean), kvs = parts.map(function (c) { return /^([^:：]{1,14})\s*[:：]\s*(.+)$/.exec(c.trim()); });
+    if (kvs.length >= 2 && kvs.every(function (m) { return m && /^(\d+\s*단계|[①-⑨]|\d+\s*(?:Q|분기|월|년|차)|'?\d{2}\s*(?:년|\.|Q))/.test(m[1].trim()); }))
+      return '<div class="tk-road"><b class="tk-fl">' + esc(lab) + '</b><ol>' + kvs.map(function (m) { return '<li><b data-shape="homePlate">' + esc(m[1].trim()) + '</b><span>' + numEm(esc(m[2])) + '</span></li>'; }).join('') + '</ol></div>';
+    var cells = parts.map(function (c) { var m = /^([^:：]{1,14})\s*[:：]\s*(.+)$/.exec(c.trim()); return m ? '<div><b>' + esc(m[1]) + '</b><span>' + numEm(esc(m[2])) + '</span></div>' : '<div><span>' + numEm(esc(c)) + '</span></div>'; });
     return '<div class="tk-facts"><b class="tk-fl">' + esc(lab) + '</b>' + cells.join('') + '</div>';
   }
   function keyIdx(s) {
@@ -352,11 +361,135 @@
   }
   function list(v) { return (v || '').split(/\s*\/\s*/).map(function (x) { return x.trim(); }).filter(Boolean); }
   function lastNum(x) { var m = /^(.*?)\s*([+\-−]?[\d,]+(?:\.\d+)?)\s*([%가-힣a-zA-Z]*)\s*$/.exec(x); return m ? { label: m[1].trim(), value: +m[2].replace(/[,−]/g, function (c) { return c === '−' ? '-' : ''; }), raw: m[2] + (m[3] || ''), unit: m[3] || '' } : null; }
-  function firstNum(x) { var m = /^\s*((?:[가-힣~]{1,3}\s?)?[+\-]?[\d,]+(?:\.\d+)?\s*(?:%p|%|배|억|조|원|명|개사|개|건|년대|년|일|시간|달러|유형|단계|가지|대)?[+↑↓]?(?:\s*이상)?)\s+(.*)$/.exec(x); return m ? { big: m[1].trim(), label: m[2].trim() } : null; }
+  function firstNum(x) {
+    var m = /^\s*((?:약\s?|연\s?|월\s?|상위\s?|하위\s?)?[+\-]?\d[\d,]*(?:\.\d+)?(?:\s?[~∼]\s?\d[\d,]*(?:\.\d+)?)?\s?(?:만|천|백|억|조)?\s?(?:%p|%|배|원|명|개사|개국|개|곳|편|건|회|차례|차|위|점|년대|년|개월|일|시간|달러|유형|단계|가지|대|문장|팀|종)?[+↑↓]?)(?:\s*(이상|이하|미만|초과|내외|안팎|수준|이상의))?\s+(.*)$/.exec(x);
+    if (!m) return null;
+    var big = m[1].trim(), q = m[2] || '';
+    if (!/\d/.test(big)) return null;
+    return { big: big + (/이상|초과/.test(q) ? '+' : ''), label: (q && !/이상|초과/.test(q) ? q + ' ' : '') + m[3].trim() };
+  }
   function unitHead(d, title) { var u = d.kv['단위'], tt = d.kv['제목'] || title || (u ? (/꺾은선|추이/.test(d.name) ? '추이' : /복합|콤보/.test(d.name) ? '실적 추이' : /누적/.test(d.name) ? '구성' : /막대/.test(d.name) ? '항목별 비교' : '주요 수치') : ''); return (tt || u) ? '<h3 class="tk-bh">' + esc(tt) + (u ? '<small>(단위 : ' + esc(u) + ')</small>' : '') + '</h3>' : ''; }
   var POS = { '왼쪽위': 0, '좌상': 0, '오른쪽위': 1, '우상': 1, '왼쪽아래': 2, '좌하': 2, '오른쪽아래': 3, '우하': 3 };
   var BALL = function (g) { return /상|높|●|강/.test(g) ? '<span class="tk-ball">●</span>' : /중|보통|◐/.test(g) ? '<span class="tk-ball">◐</span>' : /하|낮|○|약/.test(g) ? '<span class="tk-ball tk-low">○</span>' : esc(g); };
+
+  /* ── 2-1. 표현 풀: 같은 내용 모양을 여러 형식으로 — 선택기가 덱 전체를 보고 고름 ── */
+  var FORMS = {
+    contrast: ['전환표', '좌우 분할', '이동 트랙'],
+    flow: ['단계 흐름', '세로 흐름'],
+    parts: ['카드 묶음', '전략 하우스', '원형 묶음', '역할 라벨'],
+    eval: ['평가표', '포지셔닝 맵'],
+    cases: ['사례 이행', '결과 카드']
+  };
+  var FAMILY = { '카드 묶음': 'box', '역할 라벨': 'box', '전략 하우스': 'box', '좌우 분할': 'box', '결과 카드': 'box', '전환표': 'row', '이동 트랙': 'row', '사례 이행': 'row', '평가표': 'grid', '표': 'grid' };
+  function shapeOf(nm, C) {
+    nm = (nm || '').replace(/\s/g, '');
+    if (/전환표|대비표|AS-IS|전후비교/.test(nm) && C.length === 2) return 'contrast';
+    if (/단계|셰브론|프로세스|절차/.test(nm) && C.length >= 2 && C.length <= 6) return 'flow';
+    if (/평가표|하비|신호등/.test(nm)) return 'eval';
+    if (/사례|이행/.test(nm) && C.length >= 2) return 'cases';
+    if (/하우스|카드|병렬|역할|라벨|원형/.test(nm) && C.length >= 2 && C.length <= 5) return 'parts';
+    return '';
+  }
+  var GR = function (x) { var m = /^(상|중|하|높음|보통|낮음|●|◐|○)/.exec((x || '').trim()); return m ? (/상|높음|●/.test(m[1]) ? 2 : /중|보통|◐/.test(m[1]) ? 1 : 0) : null; };
+  function critItem(c, cr, j) { var it = c.items.find(function (x) { return x.indexOf(cr) === 0; }) || c.items[j] || ''; return it.replace(new RegExp('^' + cr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[:：]?\\s*'), ''); }
+  function formFit(f, d, C) {
+    var n = C.length, kv = d.kv, len = function (c) { return c.items.join('').length; };
+    switch (f) {
+      case '전환표': return 50;
+      case '좌우 분할': return n === 2 ? 48 : 0;
+      case '이동 트랙': return n === 2 && Math.max(C[0].items.length, C[1].items.length) <= 6 && C[0].items.concat(C[1].items).every(function (x) { return x.length <= 34; }) ? 47 : 0;
+      case '단계 흐름': return 50;
+      case '세로 흐름': return n >= 3 && n <= 5 ? 49 : 0;
+      case '카드 묶음': return n <= 4 ? 40 : 34;
+      case '전략 하우스': return n >= 3 && n <= 4 ? 46 + (kv['지붕'] ? 1 : 0) : 0;
+      case '원형 묶음': return n >= 3 && n <= 4 && C.every(function (c) { return c.name.length <= 9 && len(c) <= 120; }) ? 47 : 0;
+      case '역할 라벨': return n >= 3 ? 40 : 0;
+      case '평가표': return 50;
+      case '포지셔닝 맵':
+        var cr = list(kv['기준']); if (cr.length < 2 || n < 2 || n > 8) return 0;
+        var ok = C.filter(function (c) { return GR(critItem(c, cr[0], 0)) != null && GR(critItem(c, cr[1], 1)) != null; }).length;
+        return ok >= Math.max(2, Math.ceil(n * 0.66)) ? 48 : 0;
+      case '사례 이행': return 50;
+      case '결과 카드': return n >= 2 && n <= 4 ? 48 : 0;
+    }
+    return 0;
+  }
+  function hashStr(x) { var h = 7; for (var i = 0; i < x.length; i++) h = (h * 31 + x.charCodeAt(i)) % 9973; return h; }
+  /* 덱 전체 선택: 적합도 − (이미 쓴 형식 · 바로 앞 장과 같은 형식 · 같은 계열) 감점 */
+  function chooseForms(deck, ov) {
+    var uses = {}, fam = {}, prev = '', salt = deck.cover ? deck.cover.title : '';
+    deck.slides.forEach(function (s) {
+      var d = design(s.dmain), C = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); });
+      s._form = ''; s._alts = []; s._shape = '';
+      var shape = d && !isDataDesign(d) ? shapeOf(d.name, C) : '';
+      var base = d ? d.name.replace(/\s/g, '') : '';
+      if (shape) {
+        var forced = d.kv['표현'] ? d.kv['표현'].replace(/\s/g, '') : '';
+        var cand = FORMS[shape].map(function (f) {
+          var sc = formFit(f, d, C); if (!sc) return null;
+          if (base === f.replace(/\s/g, '') && shape === 'eval') sc += 2;
+          var pen = (uses[f] || 0) * 14 + (prev === f ? 20 : 0) + (fam[FAMILY[f]] || 0) * 5;
+          return { f: f, s: sc - pen + (hashStr(salt + s.title + f) % 9), fit: sc };
+        }).filter(Boolean).sort(function (a, b) { return b.s - a.s; });
+        s._shape = shape; s._alts = cand.map(function (c) { return c.f; });
+        var pick = cand[0] && cand[0].f;
+        if (forced) { var hit = s._alts.find(function (f) { return f.replace(/\s/g, '') === forced; }); if (hit) pick = hit; }
+        if (ov && ov[s.title] && s._alts.indexOf(ov[s.title]) >= 0) pick = ov[s.title];
+        s._form = pick || '';
+      }
+      var used = s._form || (d ? (isDataDesign(d) ? d.name : d.name) : '자동');
+      uses[used] = (uses[used] || 0) + 1; if (FAMILY[used]) fam[FAMILY[used]] = (fam[FAMILY[used]] || 0) + 1; prev = used;
+      s._used = used;
+    });
+  }
+  /* 새 형식 그리기 */
+  var NEWF = {
+    '좌우 분할': function (d, C, s, used, head) {
+      var dims = list(d.kv['차원']);
+      var side = function (c, to) { return '<div class="tk-sp' + (to ? ' tk-sp-to' : '') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items.map(function (x, i) { return dims[i] && x.indexOf(dims[i]) !== 0 && !/^[^:：]{1,12}[:：]/.test(x) ? dims[i] + ': ' + x : x; }), to ? s.key : '', used) + '</div>'; };
+      return head + '<div class="tk-split tk-grow">' + side(C[0], 0) + '<i class="tk-sparrow" data-shape="tri-r"></i>' + side(C[1], 1) + '</div>';
+    },
+    '이동 트랙': function (d, C, s, used, head) {
+      var dims = list(d.kv['차원']), a = C[0].items, b = C[1].items, n = Math.max(a.length, b.length);
+      var strip = function (x, dm) { x = x || ''; return dm && x.indexOf(dm) === 0 ? x.slice(dm.length).replace(/^\s*[:：]\s*/, '') : x; };
+      var h = '<div class="tk-track tk-grow' + (dims.length ? '' : ' tk-nolabel') + '"><div class="tk-tr tk-th"><span></span><span>' + esc(C[0].name) + '</span><span></span><span>' + esc(C[1].name) + '</span></div>';
+      for (var i = 0; i < n; i++) h += '<div class="tk-tr"><span>' + esc(dims[i] || '') + '</span><span>' + esc(strip(a[i], dims[i])) + '</span><span class="tk-trk"><i class="tk-t0"></i><i class="tk-tl"></i><i class="tk-t1"></i></span><span>' + numEm(esc(strip(b[i], dims[i]))) + '</span></div>';
+      return head + h + '</div>';
+    },
+    '세로 흐름': function (d, C, s, used, head) {
+      var ki = keyIdx(Object.assign({}, s, { cells: C }));
+      return head + '<div class="tk-vflow tk-grow"><i class="tk-vline"></i>' + C.map(function (c, i) { return '<div class="tk-vf' + (i === ki ? ' tk-key' : '') + '"><b class="tk-vdot">' + (i + 1) + '</b><div class="tk-vh">' + esc(c.name.replace(/^\s*(?:\d+[.)]|[①-⑳])\s*/, '')) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>';
+    },
+    '원형 묶음': function (d, C, s, used, head) {
+      var ki = keyIdx(Object.assign({}, s, { cells: C })), top = d.kv['지붕'] || '';
+      return head + '<div class="tk-circles tk-grow">' + (top ? '<div class="tk-ctop">' + esc(top) + '</div>' : '') + '<div class="tk-crow">' + C.map(function (c, i) { return '<b class="tk-circ' + (i === ki ? ' tk-key' : '') + '">' + esc(c.name) + '</b>'; }).join('') + '</div><div class="tk-ccols">' + C.map(function (c) { return '<div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div>' + (d.kv['바닥'] ? '<div class="tk-cbase">' + esc(d.kv['바닥']) + '</div>' : '') + '</div>';
+    },
+    '포지셔닝 맵': function (d, C, s, used, head) {
+      var cr = list(d.kv['기준']), seen = {}, ki = keyIdx(Object.assign({}, s, { cells: C }));
+      var dots = C.map(function (c, i) {
+        var gx = GR(critItem(c, cr[0], 0)), gy = GR(critItem(c, cr[1], 1)); if (gx == null || gy == null) return '';
+        var k = gx + '_' + gy, o = seen[k] = (seen[k] || 0) + 1;
+        var x = 18 + gx * 32, y = 80 - gy * 30 + (o - 1) * 16;
+        var note = cr[2] ? critItem(c, cr[2], 2).replace(/^(상|중|하|높음|보통|낮음|●|◐|○)\s*[—\-–]?\s*/, '') : critItem(c, cr[0], 0).replace(/^(상|중|하|높음|보통|낮음|●|◐|○)\s*[—\-–]?\s*/, '');
+        return '<div class="tk-pdot' + (gx === 2 ? ' tk-pl' : '') + (i === ki ? ' tk-key' : '') + '" style="' + (gx === 2 ? 'right:' + (100 - x) : 'left:' + x) + '%;top:' + y + '%"><i></i><b>' + esc(c.name) + '</b><span>' + esc(note) + '</span></div>';
+      }).join('');
+      return head + '<div class="tk-pmap tk-grow"><div class="tk-pfield"><div class="tk-pq"></div><div class="tk-pq tk-pq-hi"></div><div class="tk-pq"></div><div class="tk-pq"></div>' + dots + '</div><div class="tk-pax tk-pax-x">' + esc(cr[0]) + ' 낮음 → 높음</div><div class="tk-pax tk-pax-y">↑ ' + esc(cr[1]) + ' 높음</div>' + (cr[2] ? '<div class="tk-pnote">점 옆 글: ' + esc(cr[2]) + '</div>' : '') + '</div>';
+    },
+    '결과 카드': function (d, C, s, used, head) {
+      return head + '<div class="tk-rcards tk-grow">' + C.map(function (c) {
+        var fr = c.items[0] || '', to = c.items.slice(1).join(' / ');
+        if (c.items.length === 1 && /→/.test(fr)) { var sp = fr.split(/\s*→\s*/); fr = sp[0]; to = sp.slice(1).join(' → '); }
+        var kvf = /^([^:：]{2,12})[:：]\s*(.+)$/.exec(fr), kvt = /^([^:：]{2,12})[:：]\s*(.+)$/.exec(to);
+        return '<div class="tk-rc"><div class="tk-h">' + esc(c.name) + '</div><div class="tk-rfrom">' + (kvf ? '<b>' + esc(kvf[1]) + '</b>' + esc(kvf[2]) : esc(fr)) + '</div><i class="tk-rarrow" data-shape="tri-d"></i><div class="tk-rto">' + (kvt ? '<b>' + esc(kvt[1]) + '</b>' + numEm(esc(kvt[2])) : numEm(esc(to))) + '</div></div>';
+      }).join('') + '</div>';
+    }
+  };
   function draw(d, C, s, used) {
+    if (s._form && !d._routed && d.raw === s.dmain) {
+      var hd0 = d.kv['제목'] ? '<h3 class="tk-bh">' + esc(d.kv['제목']) + (d.kv['단위'] ? '<small>(단위 : ' + esc(d.kv['단위']) + ')</small>' : '') + '</h3>' : '';
+      if (NEWF[s._form]) { var r0 = NEWF[s._form](d, C, s, used, hd0); if (r0) return r0; }
+      else if (s._form.replace(/\s/g, '') !== d.name) return draw(Object.assign({}, d, { name: s._form.replace(/\s/g, ''), _routed: 1 }), C, s, used);
+    }
     var n = C.length, ki = keyIdx(Object.assign({}, s, { cells: C })), nm = d.name, kv = d.kv, out = '';
     var head = kv['제목'] ? '<h3 class="tk-bh">' + esc(kv['제목']) + (kv['단위'] ? '<small>(단위 : ' + esc(kv['단위']) + ')</small>' : '') + '</h3>' : '';
     if (/전환표|대비표|AS-IS|전후비교/.test(nm) && n >= 2) {
@@ -409,8 +542,9 @@
     }).join('') + '</div>';
     if (/평가표|하비|신호등/.test(nm)) {
       var crit = list(kv['기준']);
-      return head + '<table class="tk-table"><thead><tr><th>구분</th>' + crit.map(function (c) { return '<th>' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' + C.map(function (c, i) {
-        return '<tr' + (i === ki ? ' class="tk-key"' : '') + '><th>' + esc(c.name) + '</th>' + crit.map(function (cr, j) { var it = c.items.find(function (x) { return x.indexOf(cr) === 0; }) || c.items[j] || ''; var g = it.replace(new RegExp('^' + cr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[:：]?\\s*'), ''); var m = /^(상|중|하|높음|보통|낮음|●|◐|○)\s*(.*)$/.exec(g); return '<td class="c">' + (m ? BALL(m[1]) + (m[2] ? '<br><small>' + esc(m[2].replace(/^[—\-–]\s*/, '')) + '</small>' : '') : esc(g)) + '</td>'; }).join('') + '</tr>';
+      var anyG = C.some(function (c) { return c.items.some(function (x) { return /^(?:[^:：]{1,12}[:：]\s*)?(상|중|하|높음|보통|낮음|●|◐|○)(\s|$)/.test(x); }); });
+      return head + (anyG ? '<div class="tk-legend-g">' + esc(kv['범례'] || '● 높음 · ◐ 중간 · ○ 낮음') + '</div>' : '') + '<table class="tk-table"><thead><tr><th>구분</th>' + crit.map(function (c) { return '<th>' + esc(c) + '</th>'; }).join('') + '</tr></thead><tbody>' + C.map(function (c, i) {
+        return '<tr' + (i === ki ? ' class="tk-key"' : '') + '><th>' + esc(c.name) + '</th>' + crit.map(function (cr, j) { var it = c.items.find(function (x) { return x.indexOf(cr) === 0; }) || c.items[j] || ''; var g = it.replace(new RegExp('^' + cr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*[:：]?\\s*'), ''); var m = /^(상|중|하|높음|보통|낮음|●|◐|○)\s*(.*)$/.exec(g); return '<td class="c">' + (m ? BALL(m[1]) + (m[2] ? esc(m[2].replace(/^[—\-–]\s*/, '')) : '') : esc(g)) + '</td>'; }).join('') + '</tr>';
       }).join('') + '</tbody></table>';
     }
     if (/^표/.test(nm)) {
@@ -428,10 +562,18 @@
     if (/수치|타일|KPI|근거묶음|큰수치/i.test(nm)) {
       var dir = vals.length > 3 ? '' : '';
       return head + '<div class="tk-evidence tk-grow">' + vals.map(function (v) {
-        var f = firstNum(v) || { big: v, label: '' }, dl = /\(([+\-][^)]*)\)\s*$/.exec(f.label), lab = dl ? f.label.slice(0, dl.index).trim() : f.label;
+        var vv = v.replace(/^([^|]+?)\s*\|\s*/, '$1 '), f = firstNum(vv);
+        if (!f || f.big.length > 10) return '<div class="tk-ev tk-evtext"><b>' + numEm(esc(vv)) + '</b></div>';
+        var dl = /\(([+\-][^)]*)\)\s*$/.exec(f.label), lab = dl ? f.label.slice(0, dl.index).trim() : f.label;
         var key = s.key && (v.indexOf(s.key) >= 0 || s.key.indexOf(f.big) >= 0) && !used.ev;
         if (key) used.ev = 1;
-        return '<div class="tk-ev' + (key ? ' tk-key' : '') + '"><span class="tk-big">' + esc(f.big) + (dl ? '<span class="tk-delta' + (/^-/.test(dl[1]) ? ' tk-down' : '') + '">' + esc(dl[1]) + '</span>' : '') + '</span><b>' + esc(lab) + '</b></div>';
+        /* 「N개 중 M」 → 비율 칸 */
+        var num = parseFloat(f.big.replace(/,/g, '')), den = /(\d+)\s*(?:대|개|곳|명|개사|개국)?\s*(?:[가-힣]+\s*){0,2}중/.exec(lab);
+        if (den && num > 0 && +den[1] <= 20 && num <= +den[1] && num === Math.round(num)) {
+          var sq = ''; for (var q = 0; q < +den[1]; q++) sq += '<i' + (q < num ? ' class="on"' : '') + '></i>';
+          return '<div class="tk-ev tk-ratio' + (key ? ' tk-key' : '') + '"><span class="tk-big">' + esc(f.big) + '<small>/' + den[1] + '</small></span><div class="tk-pict">' + sq + '</div><b>' + esc(lab) + '</b></div>';
+        }
+        return '<div class="tk-ev' + (key ? ' tk-key' : '') + (f.big.length > 6 ? ' tk-evlong' : '') + '"><span class="tk-big">' + esc(f.big) + (dl ? '<span class="tk-delta' + (/^-/.test(dl[1]) ? ' tk-down' : '') + '">' + esc(dl[1]) + '</span>' : '') + '</span><b>' + esc(lab) + '</b></div>';
       }).join('') + '</div>' + (kv['결론'] ? '<div class="tk-concl">' + esc(kv['결론']) + '</div>' : '');
     }
     if (/워터폴|브리지/.test(nm)) {
@@ -493,8 +635,9 @@
     return out;
   }
   /* ── 3. HTML 만들기 ─────────────────────── */
-  function build(deck) {
+  function build(deck, ov) {
     var h = [];
+    chooseForms(deck, ov || {});
     var title = deck.cover ? deck.cover.title : (deck.slides[0] ? deck.slides[0].title : 'TK 장표');
     if (deck.cover) {
       var parts = deck.cover.sub.split(/\s*[·|]\s*/), date = '', subt = deck.cover.sub;
@@ -515,8 +658,8 @@
         }).join('') + '</div></section>');
     }
     deck.slides.forEach(function (s, i) {
-      var subs = s.subs.map(function (x) { return '<p class="tk-sub' + (x.kind === '실행' ? ' tk-do' : '') + '">' + esc(x.kind === '실행' && !/^☞/.test(x.text) ? '☞ ' + x.text : x.text) + '</p>'; }).join('');
-      h.push('<section class="tk-slide"><h2 class="tk-title">' + esc(s.title) + '</h2><div class="tk-lead">' + (s.lead ? '<p class="tk-lead-main">' + esc(s.lead) + '</p>' : '') + subs + '</div>' + (function () { var bd = body(s, i); return typeof bd === 'string' ? '<div class="tk-body">' + bd + '</div>' : '<div class="tk-body tk-auto" style="flex-direction:column">' + bd.html + '</div>'; })() +
+      var subs = s.subs.filter(function (x) { return x.kind !== '실행' || window.TK_SHOW_DO; }).map(function (x) { return '<p class="tk-sub' + (x.kind === '실행' ? ' tk-do' : '') + '">' + esc(x.kind === '실행' && !/^☞/.test(x.text) ? '☞ ' + x.text : x.text) + '</p>'; }).join('');
+      h.push('<section class="tk-slide" data-form="' + esc(s._used || '') + '"><h2 class="tk-title">' + esc(s.title) + '</h2><div class="tk-lead">' + (s.lead ? '<p class="tk-lead-main">' + esc(s.lead) + '</p>' : '') + subs + '</div>' + (function () { var bd = body(s, i); return typeof bd === 'string' ? '<div class="tk-body">' + bd + '</div>' : '<div class="tk-body tk-auto" style="flex-direction:column">' + bd.html + '</div>'; })() +
         (s.note ? '<p class="tk-note">' + esc(/^출처/.test(s.note) ? s.note : '출처 : ' + s.note) + '</p>' : '') + '</section>');
     });
     return docOf(title, h.join('\n'));
@@ -613,19 +756,35 @@
     var d = kind === 'struct' ? parseStruct(t) : parse(t);
     if (kind === 'plan') inferDesign(d);
     if (!d.slides.length) { m.textContent = '「### 본문 1 : …」 같은 장 머리를 찾지 못했습니다. 장표기획 원고 전체를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
-    show(build(d));
+    if (t0 !== lastSrc) { OV = {}; lastSrc = t0; }
+    show(build(d, OV)); formsUI(d);
     var miss = d.slides.filter(function (s) { return !s.cells.length; }).length;
     var guessed = d.slides.map(function (s, i) { return s.guess || !s.lead ? (i + 1) : 0; }).filter(Boolean);
     if (!exact && kind === 'plan') { m.className = 'err'; }
     m.textContent = (kind === 'struct' ? '[구조화 결과] ' : !exact ? '[원고 틀 일부 벗어남 — 너그럽게 읽음] ' : '') + (guessed.length ? '추정으로 그린 장: ' + guessed.join('·') + ' / ' : '') + '표지 ' + (d.cover ? 1 : 0) + ' · 목차 ' + (d.toc ? 1 : 0) + ' · 본문 ' + d.slides.length + '장을 만들었습니다.' + (miss ? ' 본문이 비어 있는 장 ' + miss + '개 — 원고의 「본문:」 줄을 확인해 주십시오.' : '');
   };
+  var OV = {}, lastSrc = '';
+  function formsUI(d) {
+    var box = $('forms'); box.innerHTML = '';
+    d.slides.forEach(function (s, i) {
+      if (!s._form) return;
+      var row = document.createElement('div');
+      row.innerHTML = '<span>' + (i + 1) + '. ' + esc(s.title.replace(/^[ⅠⅡⅢⅣⅤ\d\-.\s]+/, '')) + '</span><em>' + esc(s._form) + '</em>';
+      if (s._alts.length > 1) {
+        var b = document.createElement('button'); b.textContent = '다른 안'; b.className = 'sub';
+        b.onclick = function () { var k = s._alts.indexOf(s._form); OV[s.title] = s._alts[(k + 1) % s._alts.length]; $('go').onclick(); };
+        row.appendChild(b);
+      }
+      box.appendChild(row);
+    });
+  }
   $('open').onclick = function () { if (!last) return; var w = window.open(URL.createObjectURL(new Blob([last], { type: 'text/html' })), '_blank'); if (!w) $('msg').textContent = '팝업이 막혔습니다. 「HTML 저장」을 써 주십시오.'; };
   $('save').onclick = function () {
     if (!last) return;
     var a = document.createElement('a'), t = (/<title>([^<]*)<\/title>/.exec(last) || [, 'TK 장표'])[1];
     a.href = URL.createObjectURL(new Blob([last], { type: 'text/html' })); a.download = t + '.html'; a.click();
   };
-  $('clear').onclick = function () { $('src').value = ''; $('view').srcdoc = ''; last = ''; $('msg').textContent = ''; };
+  $('clear').onclick = function () { $('forms').innerHTML = ''; $('src').value = ''; $('view').srcdoc = ''; last = ''; $('msg').textContent = ''; };
   window.TKMake = { parse: parse, build: build };
 })();
 </script>

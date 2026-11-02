@@ -113,7 +113,7 @@
     });
   }
 
-  var BOXOV = '.tk-main, .tk-aux, .tk-card, .tk-list, .tk-pillars > div, .tk-node, .tk-q, .tk-branch, .tk-roles > div, .tk-lc, .tk-sr > span, td, th, .tk-cnode, .tk-spoke, .tk-ev, .tk-steps > li, .tk-case > span, .tk-sum, .tk-facts > div';
+  var BOXOV = '.tk-main, .tk-aux, .tk-card, .tk-list, .tk-sp, .tk-tr > span, .tk-vf, .tk-ccols > div, .tk-rc, .tk-road li, .tk-pillars > div, .tk-node, .tk-q, .tk-branch, .tk-roles > div, .tk-lc, .tk-sr > span, td, th, .tk-cnode, .tk-spoke, .tk-ev, .tk-steps > li, .tk-case > span, .tk-sum, .tk-facts > div';
   function overflowing(body) {
     if (body.scrollHeight > body.clientHeight + 2) return true;
     var br = body.getBoundingClientRect(), bx = body.querySelectorAll(BOXOV);
@@ -536,6 +536,7 @@
           function shape(kind, b, opt) {
             var o = Object.assign({}, b, opt);
             if (kind === 'tri-r') { var cx = o.x + o.w / 2, cy = o.y + o.h / 2, w = o.w, h = o.h; o.w = h; o.h = w; o.x = cx - h / 2; o.y = cy - w / 2; o.rotate = 90; kind = S.triangle; }
+            else if (kind === 'tri-d') { kind = S.triangle; o.flipV = true; }
             else if (kind === 'trapezoid-down') { kind = S.trapezoid; o.flipV = true; }
             else if (kind === 'trapezoid') kind = S.trapezoid;
             else if (kind === 'chevron') kind = S.chevron;
