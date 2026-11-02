@@ -16,6 +16,7 @@
   button.main{background:var(--g);} button.sub{background:#7f7f7f;}
   #msg{font-size:12px;color:#595959;min-height:18px;}
   #msg.err{color:#c00000;}
+  #lint{font-size:11.5px;color:#7a4b00;background:#fff7e0;border-radius:4px;padding:0;} #lint:not(:empty){padding:6px 8px;} #lint p{margin:2px 0;}
   #forms{font-size:12px;max-height:30vh;overflow:auto;}
   #forms div{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #e3e3e3;}
   #forms span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -25,7 +26,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.0</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v4.1</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -36,6 +37,7 @@
       <button class="sub" id="clear">지우기</button>
     </div>
     <div id="msg"></div>
+    <div id="lint"></div>
     <div id="forms"></div>
   </div>
   <div class="pane"><iframe id="view" title="장표 미리보기"></iframe></div>
@@ -374,15 +376,17 @@
 
   /* ── 2-1. 표현 풀: 같은 내용 모양을 여러 형식으로 — 선택기가 덱 전체를 보고 고름 ── */
   var FORMS = {
-    contrast: ['전환표', '좌우 분할', '이동 트랙'],
-    flow: ['단계 흐름', '세로 흐름'],
-    parts: ['카드 묶음', '전략 하우스', '원형 묶음', '역할 라벨'],
-    eval: ['평가표', '포지셔닝 맵'],
-    cases: ['사례 이행', '결과 카드']
+    contrast: ['전환표', '좌우 분할', '이동 트랙', '상하 전환'],
+    flow: ['단계 흐름', '세로 흐름', '셰브론 띠'],
+    parts: ['카드 묶음', '전략 하우스', '원형 묶음', '역할 라벨', '허브'],
+    eval: ['평가표', '포지셔닝 맵', '점수 막대'],
+    cases: ['사례 이행', '결과 카드', '사례 표'],
+    action: ['표', '실행 카드']
   };
-  var FAMILY = { '카드 묶음': 'box', '역할 라벨': 'box', '전략 하우스': 'box', '좌우 분할': 'box', '결과 카드': 'box', '전환표': 'row', '이동 트랙': 'row', '사례 이행': 'row', '평가표': 'grid', '표': 'grid' };
-  function shapeOf(nm, C) {
+  var FAMILY = { '카드 묶음': 'box', '역할 라벨': 'box', '전략 하우스': 'box', '좌우 분할': 'box', '결과 카드': 'box', '전환표': 'row', '이동 트랙': 'row', '사례 이행': 'row', '평가표': 'grid', '표': 'grid', '사례 표': 'grid', '실행 카드': 'box', '셰브론 띠': 'row' };
+  function shapeOf(nm, C, d) {
     nm = (nm || '').replace(/\s/g, '');
+    if (/^표/.test(nm) && d && /담당|주관|책임/.test(d.kv['머리'] || '') && C.length >= 2 && C.length <= 5) return 'action';
     if (/전환표|대비표|AS-IS|전후비교/.test(nm) && C.length === 2) return 'contrast';
     if (/단계|셰브론|프로세스|절차/.test(nm) && C.length >= 2 && C.length <= 6) return 'flow';
     if (/평가표|하비|신호등/.test(nm)) return 'eval';
@@ -411,6 +415,15 @@
         return ok >= Math.max(2, Math.ceil(n * 0.66)) ? 48 : 0;
       case '사례 이행': return 50;
       case '결과 카드': return n >= 2 && n <= 4 ? 48 : 0;
+      case '상하 전환': return n === 2 && Math.max(C[0].items.length, C[1].items.length) <= 5 && C[0].items.concat(C[1].items).every(function (x) { return x.length <= 40; }) ? 46 : 0;
+      case '셰브론 띠': return n >= 3 && n <= 5 ? 47 : 0;
+      case '허브': return n >= 3 && n <= 5 && C.every(function (c) { return c.items.join(' ').length <= 70; }) ? 45 : 0;
+      case '점수 막대':
+        var cr2 = list(kv['기준']); if (cr2.length < 2 || n < 2 || n > 6) return 0;
+        return C.filter(function (c) { return cr2.filter(function (q, j) { return GR(critItem(c, q, j)) != null; }).length >= 2; }).length >= Math.ceil(n * 0.66) ? 47 : 0;
+      case '사례 표': return n >= 2 ? 44 : 0;
+      case '표': return 50;
+      case '실행 카드': return n >= 2 && n <= 5 ? 49 : 0;
     }
     return 0;
   }
@@ -421,7 +434,7 @@
     deck.slides.forEach(function (s) {
       var d = design(s.dmain), C = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); });
       s._form = ''; s._alts = []; s._shape = '';
-      var shape = d && !isDataDesign(d) ? shapeOf(d.name, C) : '';
+      var shape = d && !isDataDesign(d) ? shapeOf(d.name, C, d) : '';
       var base = d ? d.name.replace(/\s/g, '') : '';
       if (shape) {
         var forced = d.kv['표현'] ? d.kv['표현'].replace(/\s/g, '') : '';
@@ -444,6 +457,44 @@
   }
   /* 새 형식 그리기 */
   var NEWF = {
+    '상하 전환': function (d, C, s, used, head) {
+      var dims = list(d.kv['차원']), a = C[0].items, b = C[1].items, n = Math.max(a.length, b.length);
+      var strip = function (x, dm) { x = x || ''; return dm && x.indexOf(dm) === 0 ? x.slice(dm.length).replace(/^\s*[:：]\s*/, '') : x; };
+      var row = function (c, xs, to) { var h = '<b class="tk-udl' + (to ? ' tk-to' : '') + '">' + esc(c.name) + '</b>'; for (var i = 0; i < n; i++) h += '<div class="tk-udc' + (to ? ' tk-to' : '') + '">' + (to ? numEm(esc(strip(xs[i], dims[i]))) : esc(strip(xs[i], dims[i]))) + '</div>'; return h; };
+      var hd = '<span></span>'; for (var i = 0; i < n; i++) hd += '<b class="tk-udh">' + esc(dims[i] || '') + '</b>';
+      return head + '<div class="tk-ud tk-grow" style="--ud-n:' + n + '">' + (dims.length ? hd : '') + row(C[0], a, 0) + '<span></span><i class="tk-udarrow" data-shape="tri-d"></i>' + row(C[1], b, 1) + '</div>';
+    },
+    '셰브론 띠': function (d, C, s, used, head) {
+      var ki = keyIdx(Object.assign({}, s, { cells: C }));
+      return head + '<div class="tk-chv tk-grow" style="--chv-n:' + C.length + '"><div class="tk-chvh">' + C.map(function (c, i) { return '<b data-shape="' + (i ? 'chevron' : 'homePlate') + '"' + (i === ki ? ' class="tk-key"' : '') + '>' + esc(c.name.replace(/^\s*(?:\d+[.)]|[①-⑳])\s*/, '')) + '</b>'; }).join('') + '</div><div class="tk-chvb">' + C.map(function (c) { return '<div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div></div>';
+    },
+    '점수 막대': function (d, C, s, used, head) {
+      var cr = list(d.kv['기준']), ki = keyIdx(Object.assign({}, s, { cells: C }));
+      var h = '<div class="tk-score tk-grow" style="--sc-n:' + cr.length + '"><div class="tk-scr tk-sch"><span></span>' + cr.map(function (c) { return '<b>' + esc(c) + '</b>'; }).join('') + '</div>';
+      C.forEach(function (c, i) {
+        h += '<div class="tk-scr' + (i === ki ? ' tk-key' : '') + '"><b>' + esc(c.name) + '</b>' + cr.map(function (q, j) {
+          var it = critItem(c, q, j), g = GR(it), note = it.replace(/^(상|중|하|높음|보통|낮음|●|◐|○)\s*[—\-–]?\s*/, ''), seg = '';
+          for (var k = 0; k < 3; k++) seg += '<i' + (g != null && k <= g ? ' class="on"' : '') + '></i>';
+          return '<div><span class="tk-seg">' + seg + '</span><small>' + esc(note) + '</small></div>';
+        }).join('') + '</div>';
+      });
+      return head + (d.kv['범례'] ? '<div class="tk-legend-g">' + esc(d.kv['범례']) + '</div>' : '<div class="tk-legend-g">칸이 많을수록 높음</div>') + h + '</div>';
+    },
+    '사례 표': function (d, C, s, used, head) {
+      var cell = function (x) { var m = /^([^:：]{2,12})[:：]\s*(.+)$/.exec(x || ''); return m ? '<b>' + esc(m[1]) + '</b> ' + numEm(esc(m[2])) : numEm(esc(x || '')); };
+      return head + '<table class="tk-table tk-casetab"><thead><tr><th>사례</th><th>이전</th><th>이후</th></tr></thead><tbody>' + C.map(function (c) {
+        var fr = c.items[0] || '', to = c.items.slice(1).join(' / ');
+        if (c.items.length === 1 && /→/.test(fr)) { var sp = fr.split(/\s*→\s*/); fr = sp[0]; to = sp.slice(1).join(' → '); }
+        return '<tr><th>' + esc(c.name) + '</th><td>' + cell(fr) + '</td><td class="tk-to">' + cell(to) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    },
+    '실행 카드': function (d, C, s, used, head) {
+      var hd = list(d.kv['머리']).slice(1);
+      return head + '<div class="tk-acards tk-grow">' + C.map(function (c) {
+        var own = '', rows = hd.map(function (h, j) { if (/담당|주관|책임/.test(h)) { own = c.items[j] || ''; return ''; } return '<div class="tk-acr"><b>' + esc(h) + '</b><span>' + numEm(esc(c.items[j] || '')) + '</span></div>'; }).join('');
+        return '<div class="tk-ac"><div class="tk-h">' + esc(c.name) + '</div>' + rows + (own ? '<div class="tk-acown">' + esc(own) + '</div>' : '') + '</div>';
+      }).join('') + '</div>';
+    },
     '좌우 분할': function (d, C, s, used, head) {
       var dims = list(d.kv['차원']);
       var side = function (c, to) { return '<div class="tk-sp' + (to ? ' tk-sp-to' : '') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items.map(function (x, i) { return dims[i] && x.indexOf(dims[i]) !== 0 && !/^[^:：]{1,12}[:：]/.test(x) ? dims[i] + ': ' + x : x; }), to ? s.key : '', used) + '</div>'; };
@@ -757,13 +808,26 @@
     if (kind === 'plan') inferDesign(d);
     if (!d.slides.length) { m.textContent = '「### 본문 1 : …」 같은 장 머리를 찾지 못했습니다. 장표기획 원고 전체를 붙여 넣어 주십시오.'; m.className = 'err'; return; }
     if (t0 !== lastSrc) { OV = {}; lastSrc = t0; }
-    show(build(d, OV)); formsUI(d);
+    show(build(d, OV)); formsUI(d); lintUI(d, t0);
     var miss = d.slides.filter(function (s) { return !s.cells.length; }).length;
     var guessed = d.slides.map(function (s, i) { return s.guess || !s.lead ? (i + 1) : 0; }).filter(Boolean);
     if (!exact && kind === 'plan') { m.className = 'err'; }
     m.textContent = (kind === 'struct' ? '[구조화 결과] ' : !exact ? '[원고 틀 일부 벗어남 — 너그럽게 읽음] ' : '') + (guessed.length ? '추정으로 그린 장: ' + guessed.join('·') + ' / ' : '') + '표지 ' + (d.cover ? 1 : 0) + ' · 목차 ' + (d.toc ? 1 : 0) + ' · 본문 ' + d.slides.length + '장을 만들었습니다.' + (miss ? ' 본문이 비어 있는 장 ' + miss + '개 — 원고의 「본문:」 줄을 확인해 주십시오.' : '');
   };
   var OV = {}, lastSrc = '';
+  function lintUI(d, src) {
+    var w = [], ns = d.slides.length, fact = d.slides.filter(function (s) { return s.facts && !/^\s*없음/.test(s.facts); }).length;
+    d.slides.forEach(function (s, i) {
+      var no = (i + 1) + '장';
+      var m = /(\d+)\s*(?:대|가지|개)\s/.exec(s.title + ' ' + s.lead), C = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); });
+      var dm = design(s.dmain);
+      if (m && +m[1] >= 2 && +m[1] <= 9 && C.length && dm && !isDataDesign(dm) && !/^표|평가표/.test(dm.name) && +m[1] !== C.length) w.push(no + ': 「' + m[0].trim() + '」인데 칸이 ' + C.length + '개');
+      [s.dmain, s.daux].forEach(function (ln) { var dd = design(ln); if (dd && /수치|타일/.test(dd.name)) list(dd.kv['값']).forEach(function (v) { if (!firstNum(v)) w.push(no + ': 수치 타일 「' + v.slice(0, 18) + '」을 수치로 읽지 못함'); }); });
+    });
+    if (ns >= 4 && fact > Math.ceil(ns / 2)) w.push('사실 띠가 본문 ' + ns + '장 중 ' + fact + '장 — 절반 이하 권장');
+    if (/실행\s*[:：]\s*☞|^\s*-\s*☞/m.test(src)) w.push('실행(☞) 줄은 장표에 표시하지 않음');
+    $('lint').innerHTML = w.length ? '<p><b>원고 점검</b></p>' + w.map(function (x) { return '<p>· ' + esc(x) + '</p>'; }).join('') : '';
+  }
   function formsUI(d) {
     var box = $('forms'); box.innerHTML = '';
     d.slides.forEach(function (s, i) {
@@ -784,7 +848,7 @@
     var a = document.createElement('a'), t = (/<title>([^<]*)<\/title>/.exec(last) || [, 'TK 장표'])[1];
     a.href = URL.createObjectURL(new Blob([last], { type: 'text/html' })); a.download = t + '.html'; a.click();
   };
-  $('clear').onclick = function () { $('forms').innerHTML = ''; $('src').value = ''; $('view').srcdoc = ''; last = ''; $('msg').textContent = ''; };
+  $('clear').onclick = function () { $('forms').innerHTML = ''; $('lint').innerHTML = ''; $('src').value = ''; $('view').srcdoc = ''; last = ''; $('msg').textContent = ''; };
   window.TKMake = { parse: parse, build: build };
 })();
 </script>

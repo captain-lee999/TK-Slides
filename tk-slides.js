@@ -374,8 +374,11 @@
     { dir: 'column', m: '1 1 0', a: '1 1 0' },
     { dir: 'row', m: '0 0 60%', a: '1 1 0' },
     { dir: 'row', m: '0 0 50%', a: '1 1 0' },
-    { dir: 'row', m: '0 0 40%', a: '1 1 0' }
+    { dir: 'row', m: '0 0 40%', a: '1 1 0' },
+    { dir: 'row-reverse', m: '1 1 0', a: '0 0 32%' },
+    { dir: 'row-reverse', m: '1 1 0', a: '0 0 26%' }
   ];
+  var prevDir = null;
   var BOXES = '.tk-list, .tk-ev, .tk-q, .tk-node, td, .tk-cnode, .tk-spoke, .tk-from, .tk-to, .tk-lc, .tk-branch > b, .tk-sr > span';
   function emptiness(body) {
     var br = body.getBoundingClientRect(), area = br.width * br.height, rg = document.createRange(), empty = 0, cramp = 0;
@@ -396,9 +399,10 @@
     return { empty: empty, cramp: cramp };
   }
   function layout(slide) {
+    if (slide === document.querySelector('.tk-slide')) prevDir = null;
     var body = slide.querySelector('.tk-body.tk-auto'), wrap = body && body.querySelector('.tk-mainwrap');
     if (!wrap || !wrap.querySelector('.tk-aux')) { fit(slide); return; }
-    var fixed = body.getAttribute('data-layout'), best = null;
+    var fixed = body.getAttribute('data-layout'), best = null, cands = [];
     LAYOUTS.forEach(function (L, i) {
       if (fixed != null && +fixed !== i) return;
       var ax = wrap.querySelector('.tk-aux'); if (ax && ax.children.length === 1 && ax.querySelector(':scope > .tk-evidence') && L.dir === 'column' && L.a !== '0 0 auto') return;
@@ -407,8 +411,17 @@
       var fs = +slide.getAttribute('data-fs'), ov = slide.getAttribute('data-overflow') === 'yes';
       var em = emptiness(body);
       var score = (ov ? 1e6 : 0) + Math.max(0, 12 - fs) * 60 + em.empty * 100 + em.cramp * 6 + i * 0.5;
+      cands.push({ s: score, i: i, ov: ov });
       if (!best || score < best.s) best = { s: score, i: i };
     });
+    /* 장 구성 다양화: 거의 같은 점수면 바로 앞 장과 다른 방향(위아래 ↔ 좌우 ↔ 왼쪽 받침)을 고름 */
+    var dirOf = function (k) { return LAYOUTS[k].dir; };
+    if (fixed == null && prevDir) {
+      var compact = !!wrap.querySelector('.tk-aux > .tk-evidence, .tk-aux > .tk-bars, .tk-aux > .tk-plot, .tk-aux > .tk-funnel');
+      var alt = cands.filter(function (c) { return !c.ov && c.s <= best.s + 18 && dirOf(c.i) !== prevDir && (dirOf(c.i) === 'column' || compact); }).sort(function (a, b) { return a.s - b.s; })[0];
+      if (alt && dirOf(best.i) === prevDir) best = alt;
+    }
+    prevDir = dirOf(best.i);
     var L = LAYOUTS[best.i];
     wrap.style.setProperty('--dir', L.dir); wrap.style.setProperty('--mflex', L.m); wrap.style.setProperty('--aflex', L.a);
     slide.setAttribute('data-layout', best.i);
