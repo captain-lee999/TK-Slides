@@ -151,7 +151,14 @@
     var spare = body.querySelector('.tk-spare');
     if (spare) {
       spare.classList.remove('tk-on'); drawAll(slide);
-      if (fs >= 12 && slide.getAttribute('data-grow') !== 'no' && emptiness(body).empty > 0.08) { spare.classList.add('tk-on'); drawAll(slide); if (overflowing(body)) { spare.classList.remove('tk-on'); drawAll(slide); } }
+      if (!spare.hasAttribute('data-v')) spare.setAttribute('data-v', spare.classList.contains('tk-sp-side') ? 'side' : 'bottom');
+      spare.classList.toggle('tk-sp-side', spare.getAttribute('data-v') === 'side');
+      if (fs >= 12 && slide.getAttribute('data-grow') !== 'no' && emptiness(body).empty > 0.08) {
+        spare.classList.add('tk-on'); drawAll(slide);
+        /* 오른쪽 칸이 안 들어가면 아래 줄로, 그래도 안 되면 숨김(내용보다 넘침 방지가 먼저) */
+        if (overflowing(body) && spare.classList.contains('tk-sp-side')) { spare.classList.remove('tk-sp-side'); drawAll(slide); }
+        if (overflowing(body)) { spare.classList.remove('tk-on'); drawAll(slide); }
+      }
     }
     /* 빈 면이 많으면 글자를 키워 면을 채움(최대 14px) */
     if (fs === 12 && slide.getAttribute('data-grow') !== 'no') {

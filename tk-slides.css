@@ -960,3 +960,14 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 /* 이슈 트리 가지의 결론: 잎 아래에 붙임(별도 가지처럼 보이지 않게) */
 .tk-branch:has(>.tk-sum)>b{grid-row:span 2;}
 .tk-branch>.tk-sum{grid-column:2;padding:3px 8px;background:var(--green-tint);color:var(--tab-green);font-weight:700;font-size:calc(var(--fs) - 0.5px);border:var(--hairline) solid var(--line-light);border-left:0;border-top:0;}
+
+/* v5.1 글자 하한: 띠·라벨 글자 11pt 미만 금지(평가표 F1) */
+.tk-facts>div,.tk-road li>span,.tk-facts>.tk-fl,.tk-road>.tk-fl,.tk-road li>b{font-size:max(11px, calc(var(--fs) - 1.5px));}
+.tk-facts>div>b{font-size:max(11px, calc(var(--fs) - 1px));}
+
+/* 빈 면 채움 재료 — 오른쪽 세로 칸 변주(하단 블록 반복 방지) */
+.tk-body.tk-auto:has(>.tk-spare.tk-sp-side.tk-on){display:grid;grid-template-columns:minmax(0,1fr) 168px;grid-template-rows:minmax(0,1fr) auto auto;column-gap:16px;row-gap:var(--gap);}
+.tk-body.tk-auto:has(>.tk-spare.tk-sp-side.tk-on)>*{grid-column:1;}
+.tk-body.tk-auto>.tk-spare.tk-sp-side.tk-on{grid-column:2;grid-row:1 / -1;flex-direction:column;justify-content:center;margin-top:0;gap:6px;}
+.tk-spare.tk-sp-side>.tk-spl{width:auto;justify-content:flex-start;border-right:0;border-bottom:1.5px solid var(--navy-mid);padding:2px 0 4px;}
+.tk-spare.tk-sp-side>.tk-spr{display:flex;flex-direction:column;flex:none;gap:6px;}

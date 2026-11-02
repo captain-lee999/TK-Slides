@@ -118,7 +118,7 @@ async function measure(page, md) {
         visual: +Math.min(100, vis / area * 100).toFixed(0), rich: lis.length ? Math.round(rich / lis.length * 100) : 100, minFs, small: allc ? Math.round(small / allc * 100) : 0, nSizes,
         dark: dk, hollow, bottomGap, chars: body.innerText.replace(/\s/g, '').length,
         heroes: s.querySelectorAll('.tk-hero .tk-big').length, bigs: s.querySelectorAll('.tk-big').length,
-        facts: s.querySelectorAll('.tk-facts, .tk-factcol, .tk-fchips').length, band: s.querySelectorAll('.tk-band').length, slack: s.classList.contains('tk-slack') ? 1 : 0,
+        facts: s.querySelectorAll('.tk-facts, .tk-factcol, .tk-fchips').length, bottomBlk: s.querySelectorAll('.tk-body > .tk-facts, .tk-body > .tk-road, .tk-body > .tk-fchips, .tk-body > .tk-spare.tk-on:not(.tk-sp-side)').length ? 1 : 0, band: s.querySelectorAll('.tk-band').length, slack: s.classList.contains('tk-slack') ? 1 : 0,
         doLine: s.querySelectorAll('.tk-do').length + (/☞/.test(s.innerText) ? 1 : 0)
       });
       out.push(r0);
@@ -159,6 +159,7 @@ async function measure(page, md) {
   const fsv = body.filter(r => !r.cont).map(r => r.fs); if (fsv.length && Math.max(...fsv) - Math.min(...fsv) > 2) add(0, 'F4', '경미', `본문 크기 ${Math.min(...fsv)}~${Math.max(...fsv)}pt`);
   const heroN = body.filter(r => r.heroes).length; if (heroN > 2) add(0, 'N3', '경미', `큰 숫자 기둥 ${heroN}장`);
   body.forEach((r, i) => { if (i && r.heroes && body[i - 1].heroes) add(r.n, 'N3', '경미', '큰 숫자 연속'); });
+  const bb = body.filter(r => r.bottomBlk && !r.cont).length; if (bb > 2) add(0, 'P9', '경미', `하단 블록 반복 ${bb}장(캡틴 지시: 반복 지양)`);
   const factN = body.filter(r => r.facts).length, nb = body.filter(r => !r.cont).length; if (factN > Math.max(2, Math.floor(nb / 2))) add(0, 'P6', '경미', `사실 띠 ${factN}/${nb}장`);
   /* A1 · A4: 원고 대조 */
   const exp = expected(md); let miss = [];
