@@ -971,3 +971,88 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-body.tk-auto>.tk-spare.tk-sp-side.tk-on{grid-column:2;grid-row:1 / -1;flex-direction:column;justify-content:center;margin-top:0;gap:6px;}
 .tk-spare.tk-sp-side>.tk-spl{width:auto;justify-content:flex-start;border-right:0;border-bottom:1.5px solid var(--navy-mid);padding:2px 0 4px;}
 .tk-spare.tk-sp-side>.tk-spr{display:flex;flex-direction:column;flex:none;gap:6px;}
+
+/* ══ v5.2: 벤 · 스펙트럼 · 피시본 · 저울 · 인용 선언 · 게이지 ══ */
+/* 벤 다이어그램 — 테두리 원(겹침이 보이게 면은 비움) + 오른쪽 칸 목록 */
+.tk-venn{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;min-height:0;}
+.tk-vfig{position:relative;min-height:0;}
+.tk-vc3{position:absolute;aspect-ratio:1;border-radius:50%;border:2.5px solid var(--navy-mid);display:flex;padding:0 9%;}
+.tk-vc3>b{font-size:calc(var(--fs) + 2px);color:var(--tab-navy);}
+.tk-vc3.tk-vn1{border-color:var(--green-mid);} .tk-vc3.tk-vn1>b{color:var(--tab-green);}
+.tk-vc3.tk-vn2{border-color:#7f7f7f;} .tk-vc3.tk-vn2>b{color:var(--panel-bar);}
+.tk-vfig{align-self:center;width:100%;}
+.tk-venn2 .tk-vfig{aspect-ratio:1.62;}
+.tk-venn3 .tk-vfig{aspect-ratio:1.08;}
+.tk-venn2 .tk-vc3{width:62%;top:0;align-items:center;}
+.tk-venn2 .tk-vc3.tk-vn0{left:0;justify-content:flex-start;} .tk-venn2 .tk-vc3.tk-vn1{right:0;justify-content:flex-end;}
+.tk-venn3 .tk-vc3{width:56%;}
+.tk-venn3 .tk-vc3.tk-vn0{left:0;top:0;align-items:flex-start;padding-top:15%;} .tk-venn3 .tk-vc3.tk-vn1{right:0;top:0;align-items:flex-start;justify-content:flex-end;padding-top:15%;}
+.tk-venn3 .tk-vc3.tk-vn2{left:22%;bottom:0;align-items:flex-end;justify-content:center;padding-bottom:12%;}
+.tk-venn3 .tk-vcore{top:44%;}
+.tk-vcore{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:30%;padding:6px 8px;text-align:center;background:var(--tab-green);color:var(--on-fill);font-weight:700;font-size:calc(var(--fs) - 0.5px);line-height:1.3;}
+.tk-vlists{display:flex;flex-direction:column;gap:var(--gap);min-height:0;}
+.tk-vl{flex:1 0 auto;display:flex;flex-direction:column;border:var(--hairline) solid var(--line-light);}
+.tk-vl>.tk-h{justify-content:flex-start;background:var(--navy-mid);} .tk-vl.tk-vn1>.tk-h{background:var(--green-mid);} .tk-vl.tk-vn2>.tk-h{background:#7f7f7f;}
+.tk-vl>.tk-list{flex:1 1 auto;padding:6px 10px;display:flex;flex-direction:column;justify-content:center;}
+.tk-vl>.tk-sum{padding:4px 10px;background:var(--gray-tint);font-weight:700;color:var(--panel-bar);}
+/* 스펙트럼 — 양끝 사이 구간 막대(구간 색이 한쪽 끝에서 다른 끝으로 짙어짐) */
+.tk-spec{display:flex;flex-direction:column;gap:6px;min-height:0;}
+.tk-specends{flex:none;display:flex;justify-content:space-between;font-size:calc(var(--fs) + 0.5px);}
+.tk-specends>b:first-child{color:var(--panel-bar);} .tk-specends>b:last-child{color:var(--tab-green);}
+.tk-specbar{flex:none;display:grid;grid-template-columns:repeat(var(--sp-n,4),minmax(0,1fr));gap:3px;}
+.tk-specbar>i{display:flex;align-items:center;justify-content:center;height:22px;font-style:normal;font-size:11px;font-weight:700;color:#fff;}
+.tk-specbar>i.tk-key{outline:2.5px solid var(--tab-navy);outline-offset:1px;}
+.tk-speccards{flex:1 1 auto;display:grid;grid-template-columns:repeat(var(--sp-n,4),minmax(0,1fr));gap:var(--gap);min-height:0;}
+.tk-spc{display:flex;flex-direction:column;min-height:0;background:var(--panel-fill-soft);border-top:2px solid var(--line-dark);}
+.tk-spc.tk-key{background:var(--navy-tint);border-top-color:var(--tab-navy);}
+.tk-spch{display:flex;align-items:center;gap:6px;padding:6px 9px 2px;font-weight:700;font-size:calc(var(--fs) + 0.5px);}
+.tk-spch>b{flex:none;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-arial);font-size:11px;color:#fff;background:#7f7f7f;}
+.tk-spc.tk-key .tk-spch>b{background:var(--tab-navy);}
+.tk-spc>.tk-list{flex:1 1 auto;padding:4px 9px 8px;}
+/* 피시본 — 원인 갈래가 등뼈 위아래로, 머리(결과)는 오른쪽 */
+.tk-fish{display:grid;grid-template-columns:minmax(0,1fr) 18px minmax(0,0.34fr);align-items:center;gap:6px;min-height:0;}
+.tk-fbbody{display:flex;flex-direction:column;height:100%;min-height:0;}
+.tk-fbrow{flex:1 1 0;display:grid;grid-template-columns:repeat(var(--fb-n,3),minmax(0,1fr));gap:var(--gap);min-height:0;}
+.tk-fbspine{flex:none;display:block;height:4px;background:#7f7f7f;}
+.tk-fbc{display:flex;flex-direction:column;align-items:stretch;min-height:0;}
+.tk-fbc.tk-up{justify-content:flex-end;} .tk-fbc.tk-dn{justify-content:flex-start;}
+.tk-fbl{flex:none;padding:4px 8px;text-align:center;background:var(--navy-tint);color:var(--tab-navy);}
+.tk-fbc>.tk-list{flex:none;padding:5px 8px;}
+.tk-fbv{flex:1 1 6px;min-height:6px;display:block;width:2px;align-self:center;background:#a6a6a6;}
+.tk-fbarrow{display:block;width:16px;height:26px;background:#7f7f7f;clip-path:polygon(0 0,100% 50%,0 100%);}
+.tk-fbhead{display:flex;flex-direction:column;border:var(--hairline) solid var(--line-light);}
+.tk-fbhead>.tk-h{background:var(--tab-navy);} .tk-fbhead.tk-red>.tk-h{background:var(--tab-red);}
+.tk-fbhead>.tk-list{padding:8px 10px;} .tk-fbhead.tk-red>.tk-list{background:var(--red-tint);}
+/* 저울 — 들보·받침 + 두 접시(긍정 녹색 · 부정 붉은색) */
+.tk-scale{display:flex;flex-direction:column;min-height:0;}
+.tk-beam{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:end;}
+.tk-beam>span{font-size:11px;font-weight:700;color:var(--tab-green);padding:0 4px 2px;}
+.tk-beam>span:last-child{text-align:right;}
+.tk-beamb{grid-column:1 / -1;grid-row:2;display:block;height:6px;background:#595959;}
+.tk-pans{flex:1 1 auto;display:grid;grid-template-columns:minmax(0,1fr) 60px minmax(0,1fr);gap:0;min-height:0;}
+.tk-pan{display:flex;flex-direction:column;min-height:0;margin-top:10px;border:var(--hairline) solid var(--line-light);}
+.tk-pan>.tk-list{flex:1 1 auto;padding:8px 10px;display:flex;flex-direction:column;justify-content:center;}
+.tk-pan.tk-pos>.tk-h{background:var(--green-mid);} .tk-pan.tk-pos>.tk-list{background:var(--green-tint);}
+.tk-pan.tk-neg>.tk-h{background:var(--tab-red);} .tk-pan.tk-neg>.tk-list{background:var(--red-tint);}
+.tk-pan>.tk-sum{padding:4px 10px;font-weight:700;background:#fff;color:var(--ink-label);border-top:var(--hairline) solid var(--line-light);}
+.tk-fulc{display:flex;flex-direction:column;align-items:center;}
+.tk-fpost{flex:1 1 auto;display:block;width:6px;background:#595959;}
+.tk-fbase{flex:none;display:block;width:44px;height:16px;background:#595959;clip-path:polygon(25% 0,75% 0,100% 100%,0 100%);}
+/* 인용 선언 */
+.tk-quote{display:flex;flex-direction:column;gap:var(--gap);min-height:0;}
+.tk-qbox{flex:1 1 auto;position:relative;display:flex;flex-direction:column;justify-content:center;padding:14px 22px 14px 66px;background:var(--green-tint);border-left:0;min-height:0;}
+.tk-qmark{position:absolute;left:16px;top:6px;font-style:normal;font-family:Georgia,serif;font-size:64px;line-height:1;color:var(--green-mid);}
+.tk-qtxt{margin:0;font-size:calc(var(--fs) + 9px);line-height:1.4;font-weight:700;color:var(--tab-green);}
+.tk-qsrc{margin:6px 0 0;font-size:calc(var(--fs) - 0.5px);color:var(--ink-label);}
+.tk-qrows{flex:none;display:flex;flex-direction:column;gap:6px;}
+.tk-qrow{display:grid;grid-template-columns:86px minmax(0,1fr);gap:8px;align-items:stretch;}
+.tk-qh{display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--tab-navy);background:var(--navy-tint);}
+.tk-qcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:8px;}
+.tk-qc{padding:8px 10px;background:var(--panel-fill-soft);border-top:2px solid var(--navy-mid);}
+.tk-qc>b{display:block;color:var(--tab-navy);}
+/* 게이지 — 비율 수치 타일에 진척 막대 */
+.tk-ev.tk-gauge{gap:4px;}
+.tk-gtr{position:relative;height:10px;background:#fff;border:var(--hairline) solid var(--line);}
+.tk-gtr>i{position:absolute;left:0;top:0;bottom:0;display:block;background:var(--navy-mid);}
+.tk-ev.tk-key .tk-gtr{background:rgba(255,255,255,.25);} .tk-ev.tk-key .tk-gtr>i{background:var(--amber-point);}
+.tk-quote.tk-qshort .tk-qtxt{font-size:calc(var(--fs) + 14px);}

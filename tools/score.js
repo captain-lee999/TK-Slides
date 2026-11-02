@@ -25,7 +25,7 @@ function expected(md) {
   });
   return out;
 }
-const norm = s => String(s || '').replace(/^\s*(결론|요약)\s*[:：]\s*/, '').replace(/[↑↓✓✗●◐○!☞※'’"“”「」『』()\[\]:：·,.\-–—=|~∼/]/g, '').replace(/\s+/g, '');
+const norm = s => String(s || '').replace(/^\s*(결론|요약)\s*[:：]\s*/, '').replace(/[*↑↓✓✗●◐○!☞※'’"“”「」『』()\[\]:：·,.\-–—=|~∼/]/g, '').replace(/\s+/g, '');
 const NUM = /[+\-]?\d[\d,]*(?:\.\d+)?/g;
 
 async function measure(page, md) {

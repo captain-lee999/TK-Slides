@@ -25,7 +25,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v5.1</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v5.2</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -383,11 +383,12 @@
 
   /* ── 2-1. 표현 풀: 같은 내용 모양을 여러 형식으로 — 선택기가 덱 전체를 보고 고름 ── */
   var FORMS = {
-    contrast: ['전환표', '좌우 분할', '이동 트랙', '상하 전환', '중앙 축 비교', '갭 분석'],
-    flow: ['단계 흐름', '세로 흐름', '셰브론 띠', '2단 단계', '점선 타임라인', '가치 사슬', '성숙도 사다리'],
-    parts: ['카드 묶음', '전략 하우스', '원형 묶음', '역할 라벨', '허브', '방사형 카드'],
+    contrast: ['전환표', '좌우 분할', '이동 트랙', '상하 전환', '중앙 축 비교', '갭 분석', '저울'],
+    flow: ['단계 흐름', '세로 흐름', '셰브론 띠', '2단 단계', '점선 타임라인', '가치 사슬', '성숙도 사다리', '스펙트럼'],
+    parts: ['카드 묶음', '전략 하우스', '원형 묶음', '역할 라벨', '허브', '방사형 카드', '벤 다이어그램'],
+    quote: ['인용 선언', '카드 묶음'],
     eval: ['평가표', '포지셔닝 맵', '점수 막대', '등급 매트릭스', '우선순위 매트릭스'],
-    chain: ['인과 사슬', '세로 인과', '원인-결과'],
+    chain: ['인과 사슬', '세로 인과', '원인-결과', '피시본'],
     tree: ['이슈 트리', '분해 카드', '의사결정 트리'],
     cases: ['사례 이행', '결과 카드', '사례 표'],
     action: ['표', '실행 카드'],
@@ -418,6 +419,7 @@
   var FAMILY = { '카드 묶음': 'box', '역할 라벨': 'box', '전략 하우스': 'box', '좌우 분할': 'box', '결과 카드': 'box', '전환표': 'row', '이동 트랙': 'row', '사례 이행': 'row', '평가표': 'grid', '표': 'grid', '사례 표': 'grid', '실행 카드': 'box', '셰브론 띠': 'row', '2단 단계': 'box', '방사형 카드': 'box', '분해 카드': 'box', '중앙 축 비교': 'row', '등급 매트릭스': 'grid' };
   function shapeOf(nm, C, d) {
     nm = (nm || '').replace(/\s/g, '');
+    if (/인용|선언|원칙/.test(nm) && C.length >= 1 && C.length <= 4) return 'quote';
     if (/^표/.test(nm) && d && /담당|주관|책임/.test(d.kv['머리'] || '') && C.length >= 2 && C.length <= 5) return 'action';
     if (/전환표|대비표|AS-IS|전후비교/.test(nm) && C.length === 2) return 'contrast';
     if (/전환표|대비표|AS-IS|전후비교/.test(nm) && C.length >= 3 && C.length <= 5) return 'parts';
@@ -443,6 +445,11 @@
       case '누적 막대': return 44;
       case '스몰 멀티플': return 52;
       case '꺾은선': return 38;
+      case '벤 다이어그램': return n >= 2 && n <= 3 && (kv['공통'] || kv['교집합']) ? 60 : 0;
+      case '스펙트럼': return n >= 3 && n <= 5 && list(kv['양끝']).length === 2 ? 60 : 0;
+      case '피시본': return n >= 4 && n <= 7 ? (n >= 5 ? 56 : 52) : 0;
+      case '저울': return n === 2 && (/장점|찬성|기회|효과|이익|강점|얻는|편익/.test(C[0].name) && /단점|반대|위험|비용|부담|약점|잃는|리스크/.test(C[1].name) || /단점|반대|위험|비용|부담|약점|잃는|리스크/.test(C[0].name) && /장점|찬성|기회|효과|이익|강점|얻는|편익/.test(C[1].name)) ? 60 : 0;
+      case '인용 선언': return 55;
       case '갭 분석': return n === 2 && /현재|현 ?수준|AS-?IS|실적|현황/i.test(C[0].name) && /목표|TO-?BE|지향|계획/i.test(C[1].name) ? 58 : 0;
       case '가치 사슬': return n >= 3 && n <= 6 && list(kv['지원']).length ? 60 : 0;
       case '성숙도 사다리': return n >= 3 && n <= 6 && (kv['현재'] || kv['목표']) ? 62 : 0;
@@ -491,8 +498,8 @@
   }
   function hashStr(x) { var h = 7; for (var i = 0; i < x.length; i++) h = (h * 31 + x.charCodeAt(i)) % 9973; return h; }
   /* 덱 전체 선택: 적합도 − (이미 쓴 형식 · 바로 앞 장과 같은 형식 · 같은 계열) 감점 */
-  FAMILY['가치 사슬'] = 'row'; FAMILY['갭 분석'] = 'row'; FAMILY['우선순위 매트릭스'] = 'grid';
-  var SHAPEY = /^(갭 분석|가치 사슬|성숙도 사다리|우선순위 매트릭스|의사결정 트리|원형 묶음|셰브론 띠|방사형 카드|점선 타임라인|허브|세로 흐름|원인-결과|결과 카드|포지셔닝 맵|2단 단계|좌우 분할|상하 전환)$/, TEXTY = /^(표|평가표|사례 표|역할 라벨|카드 묶음|전환표|등급 매트릭스)$/;
+  FAMILY['가치 사슬'] = 'row'; FAMILY['스펙트럼'] = 'row'; FAMILY['저울'] = 'box'; FAMILY['갭 분석'] = 'row'; FAMILY['우선순위 매트릭스'] = 'grid';
+  var SHAPEY = /^(벤 다이어그램|스펙트럼|피시본|저울|인용 선언|갭 분석|가치 사슬|성숙도 사다리|우선순위 매트릭스|의사결정 트리|원형 묶음|셰브론 띠|방사형 카드|점선 타임라인|허브|세로 흐름|원인-결과|결과 카드|포지셔닝 맵|2단 단계|좌우 분할|상하 전환)$/, TEXTY = /^(표|평가표|사례 표|역할 라벨|카드 묶음|전환표|등급 매트릭스)$/;
   function density(s) {
     var txt = s.cells.map(function (c) { return c.name + ' ' + c.items.join(' '); }).join(' ');
     var facts = (txt.match(NUMRE) || []).length + s.cells.reduce(function (a, c) { return a + c.items.filter(function (x) { return !/^결론/.test(x); }).length; }, 0);
@@ -676,6 +683,36 @@
       }).join('');
       return head + '<div class="tk-pmap tk-grow"><div class="tk-pfield"><div class="tk-pq"></div><div class="tk-pq tk-pq-hi"></div><div class="tk-pq"></div><div class="tk-pq"></div>' + dots + '</div><div class="tk-pax tk-pax-x">' + esc(cr[0]) + ' 낮음 → 높음</div><div class="tk-pax tk-pax-y">↑ ' + esc(cr[1]) + ' 높음</div>' + (cr[2] ? '<div class="tk-pnote">점 옆 글: ' + esc(cr[2]) + '</div>' : '') + '</div>';
     },
+    '벤 다이어그램': function (d, C, s, used, head) {
+      var n = C.length, core = d.kv['공통'] || d.kv['교집합'], CL = ['tk-vn0', 'tk-vn1', 'tk-vn2'];
+      var circ = C.map(function (c, i) { return '<div class="tk-vc3 ' + CL[i] + '"><b>' + esc(c.name) + '</b></div>'; }).join('');
+      return head + '<div class="tk-venn tk-grow tk-venn' + n + '"><div class="tk-vfig">' + circ + '<div class="tk-vcore">' + esc(core) + '</div></div><div class="tk-vlists">' +
+        C.map(function (c, i) { return '<div class="tk-vl ' + CL[i] + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div></div>';
+    },
+    '스펙트럼': function (d, C, s, used, head) {
+      var ends = list(d.kv['양끝']), n = C.length, ki = keyIdx(Object.assign({}, s, { cells: C }));
+      return head + '<div class="tk-spec tk-grow" style="--sp-n:' + n + '"><div class="tk-specends"><b>◀ ' + esc(ends[0]) + '</b><b>' + esc(ends[1]) + ' ▶</b></div><div class="tk-specbar">' +
+        C.map(function (c, i) { return '<i class="tk-sg' + i + (i === ki ? ' tk-key' : '') + '" style="background:' + (function (t) { return '#' + [[217, 30], [217, 90], [217, 50]].map(function (q) { var v = Math.round(q[0] + (q[1] - q[0]) * t).toString(16); return v.length < 2 ? '0' + v : v; }).join(''); })(n > 1 ? i / (n - 1) : 1) + '">' + (i === ki ? '현재' : '') + '</i>'; }).join('') + '</div><div class="tk-speccards">' +
+        C.map(function (c, i) { return '<div class="tk-spc' + (i === ki ? ' tk-key' : '') + '"><div class="tk-spch"><b>' + (i + 1) + '</b>' + esc(c.name) + '</div>' + li(c.items, s.key, used) + '</div>'; }).join('') + '</div></div>';
+    },
+    '피시본': function (d, C, s, used, head) {
+      var eff = C[C.length - 1], causes = C.slice(0, -1), top = causes.filter(function (c, i) { return i % 2 === 0; }), bot = causes.filter(function (c, i) { return i % 2 === 1; });
+      var col = function (c, up) { return '<div class="tk-fbc' + (up ? ' tk-up' : ' tk-dn') + '">' + (up ? '<b class="tk-fbl">' + esc(c.name) + '</b>' + li(c.items, s.key, used) + '<i class="tk-fbv"></i>' : '<i class="tk-fbv"></i>' + li(c.items, s.key, used) + '<b class="tk-fbl">' + esc(c.name) + '</b>') + '</div>'; };
+      var m = Math.max(top.length, bot.length);
+      return head + '<div class="tk-fish tk-grow" style="--fb-n:' + m + '"><div class="tk-fbbody"><div class="tk-fbrow">' + top.map(function (c) { return col(c, 1); }).join('') + '</div><i class="tk-fbspine"></i><div class="tk-fbrow">' + bot.map(function (c) { return col(c, 0); }).join('') + '</div></div>' +
+        '<i class="tk-fbarrow" data-shape="tri-r"></i><div class="tk-fbhead' + (/증가|악화|하락|감소|실패|위험|손실|반품|불량/.test(eff.name) ? ' tk-red' : '') + '"><div class="tk-h">' + esc(eff.name) + '</div>' + li(eff.items, s.key, used) + '</div></div>';
+    },
+    '저울': function (d, C, s, used, head) {
+      var NEG = /단점|반대|위험|비용|부담|약점|잃는|리스크/, pan = function (c) { var neg = NEG.test(c.name), sum = c.items.filter(function (x) { return /^결론\s*[:：]/.test(x); }); return '<div class="tk-pan' + (neg ? ' tk-neg' : ' tk-pos') + '"><div class="tk-h">' + esc(c.name) + '</div>' + li(c.items.filter(function (x) { return !/^결론\s*[:：]/.test(x); }), s.key, used) + sum.map(function (x) { return '<div class="tk-sum">' + numEm(esc(x.replace(/^결론\s*[:：]\s*/, ''))) + '</div>'; }).join('') + '</div>'; };
+      var w = C.map(function (c) { return c.items.filter(function (x) { return !/^결론/.test(x); }).length; }), heavy = d.kv['우세'] ? (C[1].name.indexOf(d.kv['우세']) >= 0 ? 1 : 0) : (w[0] === w[1] ? -1 : w[0] > w[1] ? 0 : 1);
+      return head + '<div class="tk-scale tk-grow"><div class="tk-beam"><span' + (heavy === 0 ? ' class="tk-heavy"' : '') + '>' + (heavy === 0 ? '▼ 무게 우세' : '') + '</span><i class="tk-beamb"></i><span' + (heavy === 1 ? ' class="tk-heavy"' : '') + '>' + (heavy === 1 ? '무게 우세 ▼' : '') + '</span></div><div class="tk-pans">' + pan(C[0]) + '<div class="tk-fulc"><i class="tk-fpost"></i><i class="tk-fbase" data-shape="trapezoid"></i></div>' + pan(C[1]) + '</div></div>';
+    },
+    '인용 선언': function (d, C, s, used, head) {
+      var qc = C.find(function (c) { return c.items.some(function (x) { return /^[「“"『]/.test(x); }); }) || C[0], q = qc.items.find(function (x) { return /^[「“"『]/.test(x); }) || qc.items[0] || '';
+      var rest = C.filter(function (c) { return c !== qc; }), restItems = qc.items.filter(function (x) { return x !== q; });
+      return head + '<div class="tk-quote tk-grow' + (q.length <= 40 ? ' tk-qshort' : '') + '"><div class="tk-qbox"><i class="tk-qmark">“</i><p class="tk-qtxt">' + numEm(esc(q.replace(/^[「“"『]\s*|\s*[」”"』]$/g, ''))) + '</p><p class="tk-qsrc">— ' + esc(d.kv['출처'] && d.kv['출처'].indexOf(qc.name) >= 0 ? d.kv['출처'] : qc.name + (d.kv['출처'] ? ' · ' + d.kv['출처'] : '')) + '</p>' + (restItems.length ? li(restItems, s.key, used) : '') + '</div>' +
+        (rest.length ? '<div class="tk-qrows">' + rest.map(function (c) { return '<div class="tk-qrow"><div class="tk-qh">' + esc(c.name) + '</div><div class="tk-qcards">' + c.items.map(function (x) { var m = /^([^:：]{2,12})[:：]\s*(.+)$/.exec(x); return '<div class="tk-qc">' + (m ? '<b>' + esc(m[1]) + '</b><span>' + numEm(esc(m[2])) + '</span>' : '<span>' + numEm(esc(x)) + '</span>') + '</div>'; }).join('') + '</div></div>'; }).join('') + '</div>' : '') + '</div>';
+    },
     '갭 분석': function (d, C, s, used, head) {
       var dims = list(d.kv['차원']), nc = function (x) { return !/^결론\s*[:：]/.test(x); }, a = C[0].items.filter(nc), b = C[1].items.filter(nc), n = Math.max(a.length, b.length, dims.length);
       var strip = function (x, dm) { x = x || ''; return dm && x.indexOf(dm) === 0 ? x.slice(dm.length).replace(/^\s*[:：]\s*/, '') : x; };
@@ -856,6 +893,8 @@
           var sq = ''; for (var q = 0; q < +den[1]; q++) sq += '<i' + (q < num ? ' class="on"' : '') + '></i>';
           return '<div class="tk-ev tk-ratio' + (key ? ' tk-key' : '') + '"><span class="tk-big">' + esc(f.big) + '<small>/' + den[1] + '</small></span><div class="tk-pict">' + sq + '</div><b>' + esc(lab) + '</b></div>';
         }
+        var pv = /^([\d.]+)%$/.exec(f.big);
+        if (pv && +pv[1] <= 100 && /달성|진척|충족|가동|점유|비중|준수|참여|완료|도입|응답/.test(lab)) return '<div class="tk-ev tk-gauge' + (key ? ' tk-key' : '') + '"><span class="tk-big">' + bigHtml(f.big) + '</span><div class="tk-gtr"><i style="width:' + Math.min(100, +pv[1]) + '%"></i></div><b>' + esc(lab) + '</b></div>';
         return '<div class="tk-ev' + (key ? ' tk-key' : '') + (f.big.length > 6 ? ' tk-evlong' : '') + '"><span class="tk-big">' + bigHtml(f.big) + (dl ? '<span class="tk-delta' + (/^-/.test(dl[1]) ? ' tk-down' : '') + '">' + esc(dl[1]) + '</span>' : '') + '</span><b>' + esc(lab) + '</b></div>';
       }).join('') + '</div>' + (kv['결론'] ? '<div class="tk-concl">' + esc(kv['결론']) + '</div>' : '');
     }
