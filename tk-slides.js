@@ -148,17 +148,30 @@
       slide.style.setProperty('--lh', '1.36');
     }
     /* 사다리 ⓪: 빈 면이 크면 덱당 2장 제한으로 빠진 사실 띠·안 쓴 예비 사실(tk-spare)을 먼저 꺼냄 */
-    var spare = body.querySelector('.tk-spare');
-    if (spare) {
-      spare.classList.remove('tk-on'); drawAll(slide);
-      if (!spare.hasAttribute('data-v')) spare.setAttribute('data-v', spare.classList.contains('tk-sp-side') ? 'side' : 'bottom');
-      spare.classList.toggle('tk-sp-side', spare.getAttribute('data-v') === 'side');
-      if (fs >= 12 && slide.getAttribute('data-grow') !== 'no' && emptiness(body).empty > 0.08) {
-        spare.classList.add('tk-on'); drawAll(slide);
-        /* 오른쪽 칸이 안 들어가면 아래 줄로, 그래도 안 되면 숨김(내용보다 넘침 방지가 먼저) */
-        if (overflowing(body) && spare.classList.contains('tk-sp-side')) { spare.classList.remove('tk-sp-side'); drawAll(slide); }
-        if (overflowing(body)) { spare.classList.remove('tk-on'); drawAll(slide); }
+    /* 사다리 ⓪: 빈 면이 크면 덱당 2장 제한으로 빠진 사실 띠·안 쓴 예비 사실을 꺼냄 — 먼저 관련 칸 안의 줄(tk-spli), 다음 아래 패널(tk-spare). 오른쪽 세로 칸은 쓰지 않음 */
+    var spl = Array.prototype.slice.call(body.querySelectorAll('.tk-spli')), spare = body.querySelector('.tk-spare');
+    var setOn = function (els, on) { els.forEach(function (e) { e.classList.toggle('tk-on', on); }); drawAll(slide); };
+    var dyn = body.querySelector('.tk-spare.tk-dyn'); if (dyn) { dyn.remove(); if (spare === dyn) spare = null; }
+    if ((spl.length || spare) && slide.getAttribute('data-grow') !== 'no') {
+      setOn(spl, false); if (spare) { setOn([spare], false); spare.querySelectorAll('.tk-from-spl').forEach(function (x) { x.remove(); }); }
+      var left = [];
+      if (spl.length && emptiness(body).empty > 0.06) {
+        setOn(spl, true);
+        for (var k = spl.length - 1; k >= 0 && overflowing(body); k--) { setOn([spl[k]], false); left.unshift(spl[k]); }
+      } else left = spl.slice();
+      /* 칸 안에 못 넣은 줄: 이 장에 다른 아래 블록이 없을 때만 아래 패널로 옮겨 봄 */
+      /* 아래 패널이 이미 있으면 칸에 못 넣은 줄을 그 패널에 합침 */
+      if (left.length && spare && !spare.classList.contains('tk-dyn')) {
+        var spr = spare.querySelector('.tk-spr'); spare.querySelectorAll('.tk-from-spl').forEach(function (x) { x.remove(); });
+        left.forEach(function (e) { var t = e.cloneNode(true), tg = t.querySelector('.tk-sptag'); if (tg) tg.remove(); var d = el('div', { class: 'tk-from-spl' + (e.classList.contains('tk-spq') ? ' tk-spq' : '') }, '<span>' + t.innerHTML + '</span>'); spr.appendChild(d); });
+        left = [];
       }
+      if (left.length && !spare && !body.querySelector(':scope > .tk-facts, :scope > .tk-road, :scope > .tk-fchips')) {
+        dyn = el('div', { class: 'tk-spare tk-dyn' }, '<p class="tk-spl">참고 사실</p><div class="tk-spr">' + left.map(function (e) { var q = e.classList.contains('tk-spq'), t = e.cloneNode(true); var tg = t.querySelector('.tk-sptag'); if (tg) tg.remove(); return '<div' + (q ? ' class="tk-spq"' : '') + '><span>' + t.innerHTML + '</span></div>'; }).join('') + '</div>');
+        var after = body.querySelector(':scope > .tk-mainwrap') || body.lastElementChild; after.parentNode.insertBefore(dyn, after.nextSibling);
+        setOn([dyn], true); if (overflowing(body)) { dyn.remove(); drawAll(slide); }
+      }
+      if (spare) { setOn([spare], true); if (overflowing(body)) setOn([spare], false); }
     }
     /* 빈 면이 많으면 글자를 키워 면을 채움(최대 14px) */
     if (fs === 12 && slide.getAttribute('data-grow') !== 'no') {

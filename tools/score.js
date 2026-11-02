@@ -61,6 +61,11 @@ async function measure(page, md) {
       }
       s.querySelectorAll('*').forEach(e => { const cs = getComputedStyle(e); if (/hidden|clip/.test(cs.overflowY) && e.scrollHeight > e.clientHeight + 3 && e.clientHeight > 0 && e.innerText && e.innerText.trim() && !e.classList.contains('tk-title')) clip++; });
       Object.assign(r0, { overlap, outside, clip });
+      /* 목차 항목 수(P2) */
+      if (r0.kind === 'toc') r0.tocItems = s.querySelectorAll('li').length;
+      /* 오른쪽 참고 칸(P10, 캡틴 지시 치명) · 표 칸 몰림(T1) */
+      r0.sideNote = s.querySelectorAll('.tk-spare.tk-sp-side.tk-on, .tk-factcol').length;
+      r0.jammed = [...s.querySelectorAll('table.tk-table tr')].filter(tr => { const tds = [...tr.children]; return tds.some(td => (td.textContent.match(/\s\/\s/g) || []).length >= 1) || (tds.length > 2 && tds.slice(1).some(td => !td.textContent.trim())); }).length;
       const body = s.querySelector('.tk-body');
       if (!body || r0.kind !== 'slide') { out.push(r0); return; }
       const br = body.getBoundingClientRect(), area = br.width * br.height;
@@ -137,6 +142,8 @@ async function measure(page, md) {
     if (r.outside) add(r.n, 'L3', '치명', `화면 밖 글 ${r.outside}`);
     if (/\[수치 필요|칸 글|<제목>/.test(r.text)) add(r.n, 'A7', '치명', '자리표시');
     if (/패러다임|시너지|극대화/.test(r.text)) add(r.n, 'F7', '경미', '바꿀 말');
+    if (r.sideNote) add(r.n, 'P10', '치명', '오른쪽 참고 칸(캡틴 지시: 금지)');
+    if (r.jammed) add(r.n, 'T1', '중대', `표 행 ${r.jammed}개가 한 칸에 몰리거나 빈 칸`);
     if (r.kind !== 'slide') return;
     if (r.small > 20) add(r.n, 'F1', '중대', `11pt 미만 글 ${r.small}%`);
     else if (r.fs < 12) add(r.n, 'F1', '경미', `본문 ${r.fs}pt`);
@@ -160,6 +167,7 @@ async function measure(page, md) {
   const heroN = body.filter(r => r.heroes).length; if (heroN > 2) add(0, 'N3', '경미', `큰 숫자 기둥 ${heroN}장`);
   body.forEach((r, i) => { if (i && r.heroes && body[i - 1].heroes) add(r.n, 'N3', '경미', '큰 숫자 연속'); });
   const bb = body.filter(r => r.bottomBlk && !r.cont).length; if (bb > 2) add(0, 'P9', '경미', `하단 블록 반복 ${bb}장(캡틴 지시: 반복 지양)`);
+  const toc = res.find(r => r.kind === 'toc'); if (toc && toc.tocItems !== body.filter(r => !r.cont).length) add(toc.n, 'P2', '중대', `목차 항목 ${toc.tocItems} / 본문 ${body.filter(r => !r.cont).length}장`);
   const factN = body.filter(r => r.facts).length, nb = body.filter(r => !r.cont).length; if (factN > Math.max(2, Math.floor(nb / 2))) add(0, 'P6', '경미', `사실 띠 ${factN}/${nb}장`);
   /* A1 · A4: 원고 대조 */
   const exp = expected(md); let miss = [];

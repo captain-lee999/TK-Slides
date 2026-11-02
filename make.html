@@ -25,7 +25,7 @@
   @media(max-width:800px){main{grid-template-columns:1fr;height:auto;} textarea{min-height:260px;} iframe{min-height:520px;}}
 </style></head>
 <body>
-<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v5.2</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
+<header><div><h1>TK 장표 변환기 <small style="font-size:12px;font-weight:400;opacity:.7">v5.3</small></h1><p>장표기획 원고(또는 장표생성 HTML 코드)를 붙여 넣고 「장표 만들기」 → 오른쪽 장표의 「PPT 내보내기」로 .pptx 받기</p></div></header>
 <main>
   <div class="pane">
     <textarea id="src" placeholder="### [표지] : 보고서 제목 (부제 : …)&#10;### [목차]&#10;- 스토리 라인: …&#10;### 본문 1 : Ⅰ- 1. 제목&#10;- 리드: ✓ …&#10;- 서브메시지:&#10;  - 근거: …&#10;- 본문 구조: 비교대칭 — …&#10;- 본문:&#10;  - 칸 이름&#10;    - 사실&#10;- 강조: …&#10;- 받침: … → …&#10;- 출처: ※ …"></textarea>
@@ -82,7 +82,7 @@
       var kv = /^([가-힣 ]{2,8})\s*[:：]\s*(.*)$/.exec(txt);
       if (cur === deck.toc) {
         if (kv && /스토리/.test(kv[1])) { deck.toc.story = kv[2]; return; }
-        var part = /^([ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]+\.?\s*[^:：/]+?)\s*(?:[:：]\s*(.*))?$/.exec(txt);
+        var part = /^([ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]+\.?\s*[^:：/]+?)\s*(?:[:：]\s*(.*))?$/.exec(txt) || /^(\d+\.?\s*[^:：/\d][^:：/]*?)\s*[:：]\s*(.+)$/.exec(txt);
         if (part) {
           var items = part[2] ? part[2].split(/\s*\/\s*/) : [];
           deck.toc.parts.push({ name: part[1].trim(), items: items.map(function (s) { return s.replace(/^\d+\.\s*/, ''); }) });
@@ -289,6 +289,7 @@
     items.forEach(function (x0) {
       var x = x0.replace(/\*\*/g, '').trim(), m;
       if ((m = /^(결론|요약|시사)\s*[:：]\s*(.+)$/.exec(x))) { sums.push(m[2]); return; }
+      if (/^§/.test(x)) { var sx = x.slice(1).trim(), qm = /["“「](.+?)["”」]/.exec(sx); rows.push('<li class="tk-spli' + (qm ? ' tk-spq' : '') + '"><i class="tk-sptag">' + (qm ? '인용' : /사례|사$|기업|그룹|회장|본사/.test(sx) ? '사례' : '근거') + '</i>' + numEm(esc(sx)) + '</li>'); return; }
       var mk = '';
       if ((m = /^([↑↓✓✗●◐○!])\s*(.+)$/.exec(x))) { mk = '<i class="tk-mk tk-mk-' + MK[m[1]] + '">' + (m[1] === '!' ? '!' : m[1]) + '</i>'; x = m[2]; }
       if ((m = /^(.{2,24}?)\s*=\s*([\d.]+)\s*%$/.exec(x))) { rows.push('<li class="tk-meter">' + mk + '<span>' + esc(m[1]) + '</span><i style="--v:' + Math.min(100, +m[2]) + '%"></i><b>' + esc(m[2]) + '%</b></li>'); return; }
@@ -526,6 +527,23 @@
     var main = design(s.dmain), aux = design(s.daux);
     if (main && !isDataDesign(main) && !/일정|로드맵|간트/.test(main.name) && s.cells.length >= 2 && !s.cells.some(function (c) { return !/^\[근거\]/.test(c.name); })) {
       s.cells = s.cells.map(function (c) { return { name: c.name.replace(/^\[근거\]\s*/, ''), items: c.items }; }); if (aux && !isDataDesign(aux)) s.daux = '';
+    }
+    aux = design(s.daux); var mainCells = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); });
+    /* 표 행이 한 줄 「a / b / c」로 몰린 경우: 머리 수에 맞춰 칸으로 나눔 */
+    [main, aux].forEach(function (dd, k) {
+      if (!dd || !/^표|평가표/.test(dd.name)) return; var hn = list(dd.kv['머리']).length - 1; if (hn < 2) return;
+      s.cells.forEach(function (c) { if ((k === 1) !== /^\[근거\]/.test(c.name)) return; if (c.items.length === 1) { var pp = c.items[0].split(/\s+\/\s+/); if (pp.length === hn) c.items = pp; } });
+    });
+    /* 실행 표의 행이 주 도식 칸과 1:1이면 칸 안으로 합침(같은 과제를 두 번 그리지 않음) */
+    var auxC0 = s.cells.filter(function (c) { return /^\[근거\]/.test(c.name); });
+    if (aux && /^표/.test(aux.name) && /담당/.test(aux.kv['머리'] || '') && main && !isDataDesign(main) && !/^표/.test(main.name) && auxC0.length === mainCells.length && mainCells.length >= 2) {
+      var hds = list(aux.kv['머리']);
+      mainCells.forEach(function (c, i) {
+        var r = auxC0[i], add = [hds[0] + ': ' + r.name.replace(/^\[근거\]\s*/, '')].concat(hds.slice(1).map(function (h, j) { return h + ': ' + (r.items[j] || ''); }));
+        var ci = c.items.findIndex(function (x) { return /^결론\s*[:：]/.test(x); }); if (ci < 0) ci = c.items.length;
+        c.items.splice.apply(c.items, [ci, 0].concat(add));
+      });
+      s.cells = mainCells; s.daux = ''; s._merged = 1;
     }
   }
   function chooseForms(deck, ov) {
@@ -952,6 +970,18 @@
       var ic = inlineCells(aux); if (ic.length) s.cells = s.cells.concat(ic.map(function (c) { return { name: '[근거] ' + c.name, items: c.items }; }));
     }
     var mainCells = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); });
+    /* 빈 면 채움 재료: 관련 칸 안에 넣고(§ 줄, 빈 면이 클 때만 보임), 관련 칸이 없으면 아래 패널로 */
+    s._spareParts = spareParts(s); s._sparePanel = [];
+    var ROWF = /^(전환표|대비표|중앙 축 비교|이동 트랙|상하 전환|갭 분석|표|평가표|점수 막대|등급 매트릭스|수영 레인|사례 표|포지셔닝 맵|우선순위 매트릭스|사례 이행|결과 카드|의사결정 트리|인용 선언|원형 묶음)$/;
+    var fmS = s._form || (main ? main.name : ''), canIn = main && !isDataDesign(main) && !ROWF.test(fmS) && !/전환표|대비표|^표|평가표|레인|사례/.test(main.name);
+    var STOP = /^(전략|기업|조직|사례|기준|분석|도입|통한|위한|대한|있는|없는|그룹)$/;
+    s._spareParts.forEach(function (t) {
+      var words = t.replace(/[^가-힣A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(function (w) { return w.length >= 2 && !STOP.test(w); });
+      var best = null, bs = 0;
+      if (canIn) mainCells.forEach(function (c) { var tx = c.name + ' ' + c.items.join(' '), sc = words.filter(function (w) { return tx.indexOf(w) >= 0; }).length; if (sc > bs) { bs = sc; best = c; } });
+      if (best && bs >= 1) { var ci = best.items.findIndex(function (x) { return /^결론\s*[:：]/.test(x); }); if (ci < 0) ci = best.items.length; best.items.splice(ci, 0, '§' + t); }
+      else s._sparePanel.push(t);
+    });
     var auxCells = s.cells.filter(function (c) { return /^\[근거\]/.test(c.name); }).map(function (c) { return { name: c.name.replace(/^\[근거\]\s*/, ''), items: c.items }; });
     if (!main && !aux) return bodyAuto(s, idx);
     var mainHtml = null, auxHtml = '';
@@ -978,18 +1008,19 @@
     return { html: out, auto: true, layout: s._factsDone ? 3 : null };
   }
   /* 빈 면 채움 재료: 덱당 2장 제한으로 빠진 사실 띠 + 쓰지 않은 예비 사실 — 그린 뒤 빈 면이 클 때만 보임(tk-slides.js fit) */
-  function spareHtml(s) {
-    var parts = [], lab = '참고 사실';
-    if (s._factsOff) { var p = s._factsOff.split('|'); if (p.length > 1) lab = p[0].trim(); parts = (p.length > 1 ? p.slice(1).join('|') : p[0]).split(/\s*\/\s*/).map(function (x) { return x.trim(); }).filter(Boolean); }
-    var txt = (s.lead + s.subs.map(function (x) { return x.text; }).join('') + s.cells.map(function (c) { return c.name + c.items.join(''); }).join('')).replace(/\s/g, '');
+  function spareParts(s) {
+    var parts = [];
+    if (s._factsOff) { var p = s._factsOff.split('|'); parts = (p.length > 1 ? p.slice(1).join('|') : p[0]).split(/\s*\/\s*/).map(function (x) { return x.trim(); }).filter(Boolean); s._spareLab = p.length > 1 ? p[0].trim() : ''; }
     (s._spareX || []).forEach(function (v) { if (parts.length < 4) parts.push(v.replace(/^([^|]+?)\s*\|\s*/, '$1 ')); });
+    var txt = (s.lead + s.subs.map(function (x) { return x.text; }).join('') + s.cells.map(function (c) { return c.name + c.items.join(''); }).join('') + (s.facts || '')).replace(/\s/g, '');
     (s.reserve || []).forEach(function (r) { if (!r._used && /수치|사례|인용|사실/.test(r.kind) && parts.length < 4 && txt.indexOf(r.text.replace(/\s/g, '').slice(0, 10)) < 0) parts.push(r.text); });
-    if (!parts.length) return '';
-    /* 하단 블록 반복 금지: 좁은 도식이면 오른쪽 세로 칸, 넓은 도식이고 다른 하단 블록이 없을 때만 아래 줄 */
-    var fm = s._form || (design(s.dmain) || {}).name || '', nC = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); }).length;
-    var wideF = /^(표|평가표|사례 표|실행 카드|점수 막대|등급 매트릭스|중앙 축 비교|상하 전환|셰브론 띠|2단 단계|점선 타임라인|이동 트랙|가치 사슬|성숙도 사다리|갭 분석|우선순위 매트릭스|의사결정 트리|스몰 멀티플|덤벨|슬로프|2×2)$/.test(fm) || nC > 3 || s._hero;
-    var side = true; /* 오른쪽 칸 먼저 — 안 들어가면 tk-slides.js fit이 아래 줄로 바꿈 */
-    return '<div class="tk-spare' + (side ? ' tk-sp-side' : '') + '"><p class="tk-spl">' + esc(lab) + '</p><div class="tk-spr">' + parts.slice(0, 4).map(function (c) { var m = /^([^:：]{1,10})\s*[:：]\s*(.+)$/.exec(c); return m ? '<div><b>' + esc(m[1]) + '</b><span>' + numEm(esc(m[2])) + '</span></div>' : '<div><span>' + numEm(esc(c)) + '</span></div>'; }).join('') + '</div></div>';
+    return parts.slice(0, 4);
+  }
+  /* 관련 칸이 없는 재료만 아래 패널로 — 이 장에 다른 아래 블록(사실 띠·로드맵)이 있으면 넣지 않음, 오른쪽 세로 칸은 쓰지 않음 */
+  function spareHtml(s) {
+    var parts = s._sparePanel || []; if (!parts.length || (s.facts && !/^\s*없음/.test(s.facts))) return '';
+    var fromStrip = s._factsOff && parts.every(function (x) { return s._factsOff.indexOf(x) >= 0; });
+    return '<div class="tk-spare"><p class="tk-spl">' + esc(fromStrip && s._spareLab ? s._spareLab : '참고 사실') + '</p><div class="tk-spr">' + parts.map(function (c) { var q = /["“「](.+?)["”」]/.exec(c), m = /^([^:：]{1,10})\s*[:：]\s*(.+)$/.exec(c); return '<div' + (q ? ' class="tk-spq"' : '') + '>' + (m ? '<b>' + esc(m[1]) + '</b><span>' + numEm(esc(m[2])) + '</span>' : '<span>' + numEm(esc(c)) + '</span>') + '</div>'; }).join('') + '</div></div>';
   }
   function bandHtml(s) {
     var out = '', band = s.band.split(/\s*→\s*/)[0];
@@ -1005,7 +1036,7 @@
     if (deck.toc) deck.toc.parts.forEach(function (p) { p.name = deRoman(p.name); });
     var h = [];
     gateNums(deck); chooseForms(deck, ov || {});
-    var prevFv = '', rot = ['strip', 'side', 'chips'], ri = 0;
+    var prevFv = '', rot = ['strip', 'chips'], ri = 0; /* 오른쪽 세로 칸(side)은 캡틴 지시로 쓰지 않음 */
     var fcand = deck.slides.filter(function (s) { return s.facts && !/^\s*없음/.test(s.facts); });
     var keep = fcand.slice().sort(function (a, b) { var ra = /단계\s*[:：]/.test(a.facts) ? 0 : (a._dens && a._dens.band === 'low' ? 1 : 2), rb = /단계\s*[:：]/.test(b.facts) ? 0 : (b._dens && b._dens.band === 'low' ? 1 : 2); return ra - rb; }).slice(0, 2);
     fcand.forEach(function (s) { if (keep.indexOf(s) < 0) { s._factsOff = s.facts; s.facts = ''; } });
@@ -1016,7 +1047,6 @@
       var C = s.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); }), hasAux = !!s.daux || s.cells.length !== C.length;
       var wide = /^(갭 분석|가치 사슬|성숙도 사다리|우선순위 매트릭스|의사결정 트리|덤벨|슬로프|스몰 멀티플|표|평가표|사례 표|실행 카드|점수 막대|등급 매트릭스|중앙 축 비교|상하 전환|셰브론 띠|2단 단계|점선 타임라인|이동 트랙|2×2)$/.test(s._form || (design(s.dmain) || {}).name || '') || C.length > 3;
       var cand = rot.slice(ri).concat(rot.slice(0, ri)).filter(function (v) { return v !== prevFv && !(v === 'side' && (hasAux || wide)); });
-      if (s._dens && s._dens.band === 'low' && !hasAux && !wide && prevFv !== 'side') cand.unshift('side');
       s._fv = cand[0] || 'chips'; ri = (rot.indexOf(s._fv) + 1) % rot.length; prevFv = s._fv;
     });
     var title = deck.cover ? deck.cover.title : (deck.slides[0] ? deck.slides[0].title : 'TK 장표');
@@ -1030,12 +1060,26 @@
       var pg = deck.cover ? 3 : 2, no = 0, parts = deck.toc.parts.filter(function (p) { return p.items.length; });
       var solo = parts.length === 1 && !/^[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ\d]/.test(parts[0].name);
       var total = parts.reduce(function (a, p) { return a + p.items.length; }, 0);
+      var cardsT = !solo && parts.length >= 2 && parts.length <= 4 && total <= 12 && parts.every(function (p) { return p.items.length <= 5; });
+      if (cardsT) {
+        /* SlideForge 목차: 묶음별 전체 높이 열(회색 → 녹색 → 진녹), 문제·해법·실행 표지, 1-1. 번호·쪽, 한 장짜리 묶음은 장 흐름 한 줄, 열 사이 작은 회색 화살표 */
+        var TAG = function (n) { return /원인|문제|위기|진단|현황|한계|배경|실태|환경/.test(n) ? ['문제', 'tk-tg-p'] : /해법|전략|방안|대응|혁신|원칙/.test(n) ? ['해법', 'tk-tg-s'] : /실행|과제|구축|추진|계획|로드맵|체계|전환/.test(n) ? ['실행', 'tk-tg-x'] : null; };
+        h.push('<section class="tk-toc tk-sftoc"><h2 class="tk-title">목 차</h2>' + (deck.toc.story ? '<p class="tk-sfstory">' + esc(deck.toc.story) + '</p>' : '') + '<div class="tk-sfcols">' +
+          parts.map(function (p, pi) {
+            var pm = /^(\d+)\.?\s*(.*)$/.exec(p.name) || [, String(pi + 1), p.name], tg = TAG(pm[2]), desc = '';
+            var lis = p.items.map(function (x, k) { no++; var m = /^(\d+)\.\s*(.*)$/.exec(x), sl = deck.slides[no - 1];
+              if (p.items.length === 1 && sl) { var nm = sl.cells.filter(function (c) { return !/^\[근거\]/.test(c.name); }).map(function (c) { return c.name; }).slice(0, 4); if (nm.length >= 2) desc = nm.join(/인과|사슬|흐름|단계|셰브론|피시본|사다리|스펙트럼|가치/.test(sl._form || sl.dmain || '') ? ' → ' : ' · '); }
+              return '<li><i>' + esc(pm[1]) + '-' + (k + 1) + '.</i><em>' + esc(m ? m[2] : x) + '</em><u>' + (pg++) + '</u></li>'; }).join('');
+            return (pi ? '<div class="tk-sfarr"><i class="tk-sfsh"></i><i class="tk-sfhd" data-shape="tri-r"></i></div>' : '') + '<div class="tk-sfcol tk-sfc' + Math.min(pi, 2) + (pi === parts.length - 1 ? ' tk-sflast' : '') + '" style="flex:' + (1 + 0.12 * (p.items.length - 1)).toFixed(2) + ' 1 0"><div class="tk-sfh"><span>' + esc(pm[1]) + '</span><b>' + esc(pm[2]) + '</b></div><div class="tk-sfb">' +
+              (tg ? '<p class="tk-sftag ' + tg[1] + '">' + tg[0] + '</p>' : '') + '<ol>' + lis + '</ol>' + (desc ? '<p class="tk-sfdesc">' + esc(desc) + '</p>' : '') + '</div></div>';
+          }).join('') + '</div></section>');
+      } else
       h.push('<section class="tk-toc' + (solo ? ' tk-solo' : '') + (parts.length > 3 ? ' tk-many' : '') + (total > 9 ? ' tk-dense' : '') + '"><h2 class="tk-title">목 차</h2>' +
         (deck.toc.story ? '<div class="tk-story"><b>핵심 메시지</b><p>' + esc(deck.toc.story) + '</p></div>' : '') + '<div class="tk-parts">' +
         parts.map(function (p) {
           var pm = /^(\d+)\.?\s*(.*)$/.exec(p.name) || [, '', p.name];
           return '<div class="tk-part" style="flex:' + p.items.length + ' 1 0">' + (solo ? '' : '<div class="tk-pn"><span>' + esc(pm[1]) + '</span><b>' + esc(pm[2]) + '</b></div>') + '<ol>' +
-            p.items.map(function (x) { no++; var m = /^(\d+)\.\s*(.*)$/.exec(x); return '<li><i>' + (no < 10 ? '0' : '') + no + '</i><em>' + esc(m ? m[2] : x) + '</em><s></s><u>' + (pg++) + '</u></li>'; }).join('') + '</ol></div>';
+            p.items.map(function (x, k) { no++; var m = /^(\d+)\.\s*(.*)$/.exec(x); return '<li><i>' + (no < 10 ? '0' : '') + no + '</i><em>' + esc(m ? m[2] : x) + '</em><s></s><u>' + (pg++) + '</u></li>'; }).join('') + '</ol></div>';
         }).join('') + '</div></section>');
     }
     deck.slides.forEach(function (s, i) {

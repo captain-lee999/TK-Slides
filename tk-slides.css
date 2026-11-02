@@ -965,12 +965,6 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-facts>div,.tk-road li>span,.tk-facts>.tk-fl,.tk-road>.tk-fl,.tk-road li>b{font-size:max(11px, calc(var(--fs) - 1.5px));}
 .tk-facts>div>b{font-size:max(11px, calc(var(--fs) - 1px));}
 
-/* 빈 면 채움 재료 — 오른쪽 세로 칸 변주(하단 블록 반복 방지) */
-.tk-body.tk-auto:has(>.tk-spare.tk-sp-side.tk-on){display:grid;grid-template-columns:minmax(0,1fr) 168px;grid-template-rows:minmax(0,1fr) auto auto;column-gap:16px;row-gap:var(--gap);}
-.tk-body.tk-auto:has(>.tk-spare.tk-sp-side.tk-on)>*{grid-column:1;}
-.tk-body.tk-auto>.tk-spare.tk-sp-side.tk-on{grid-column:2;grid-row:1 / -1;flex-direction:column;justify-content:center;margin-top:0;gap:6px;}
-.tk-spare.tk-sp-side>.tk-spl{width:auto;justify-content:flex-start;border-right:0;border-bottom:1.5px solid var(--navy-mid);padding:2px 0 4px;}
-.tk-spare.tk-sp-side>.tk-spr{display:flex;flex-direction:column;flex:none;gap:6px;}
 
 /* ══ v5.2: 벤 · 스펙트럼 · 피시본 · 저울 · 인용 선언 · 게이지 ══ */
 /* 벤 다이어그램 — 테두리 원(겹침이 보이게 면은 비움) + 오른쪽 칸 목록 */
@@ -1056,3 +1050,69 @@ body{font-family:var(--font-sans);color:var(--ink);-webkit-print-color-adjust:ex
 .tk-gtr>i{position:absolute;left:0;top:0;bottom:0;display:block;background:var(--navy-mid);}
 .tk-ev.tk-key .tk-gtr{background:rgba(255,255,255,.25);} .tk-ev.tk-key .tk-gtr>i{background:var(--amber-point);}
 .tk-quote.tk-qshort .tk-qtxt{font-size:calc(var(--fs) + 14px);}
+
+/* v5.3 빈 면 채움: 관련 칸 안의 사례·근거·인용 줄 — 빈 면이 클 때만 보임 */
+.tk-list>li.tk-spli{display:none;}
+.tk-list>li.tk-spli.tk-on{display:block;margin-top:6px;padding:4px 8px 4px 8px;background:#f4f6fa;border-left:0;color:var(--ink-soft);font-size:calc(var(--fs) - 0.5px);line-height:1.4;}
+.tk-list>li.tk-spli::before{content:none;}
+.tk-sptag{display:inline-block;margin-right:6px;padding:0 5px;font-style:normal;font-size:10.5px;font-weight:700;color:#fff;background:var(--navy-mid);vertical-align:1px;}
+.tk-list>li.tk-spli.tk-spq{background:var(--green-tint);color:var(--tab-green);font-weight:700;}
+.tk-spli.tk-spq>.tk-sptag{background:var(--green-mid);}
+.tk-spr>div.tk-spq{background:var(--green-tint);} .tk-spr>div.tk-spq>span{color:var(--tab-green);font-weight:700;}
+
+
+/* v5.3 빈 면 채움: 관련 칸 안의 사례·근거·인용 줄 — 빈 면이 클 때만 보임 */
+.tk-list>li.tk-spli{display:none;}
+.tk-list>li.tk-spli.tk-on{display:block;margin-top:6px;padding:4px 8px 4px 8px;background:#f4f6fa;border-left:0;color:var(--ink-soft);font-size:calc(var(--fs) - 0.5px);line-height:1.4;}
+.tk-list>li.tk-spli::before{content:none;}
+.tk-sptag{display:inline-block;margin-right:6px;padding:0 5px;font-style:normal;font-size:10.5px;font-weight:700;color:#fff;background:var(--navy-mid);vertical-align:1px;}
+.tk-list>li.tk-spli.tk-spq{background:var(--green-tint);color:var(--tab-green);font-weight:700;}
+.tk-spli.tk-spq>.tk-sptag{background:var(--green-mid);}
+.tk-spr>div.tk-spq{background:var(--green-tint);} .tk-spr>div.tk-spq>span{color:var(--tab-green);font-weight:700;}
+
+/* v5.3 목차 카드형(묶음 2~4개): 묶음별 열 + 열 사이 세로 회색 삼각형 하나, 진한 면은 마지막 묶음 머리 하나 */
+.tk-toc.tk-tcards{padding:74px 30px 36px 30px!important;gap:18px!important;justify-content:flex-start!important;}
+.tk-toc.tk-tcards .tk-story{display:block!important;padding:0!important;border:0!important;}
+.tk-toc.tk-tcards .tk-story>p{font-size:16px!important;font-weight:700!important;color:var(--lead-blue)!important;line-height:1.5!important;}
+.tk-toc.tk-tcards .tk-story>p::before{content:"✓ ";}
+.tk-toc.tk-tcards{justify-content:center!important;}
+.tk-toc.tk-tcards .tk-parts{display:flex!important;flex-direction:row!important;flex:0 1 auto!important;align-items:stretch;gap:0!important;min-height:0;}
+.tk-toc.tk-tcards .tk-part>ol{min-height:150px;}
+.tk-toc.tk-tcards .tk-part{display:flex!important;flex-direction:column!important;flex:1 1 0!important;margin:0!important;background:var(--gray-tint);}
+.tk-toc.tk-tcards .tk-part:nth-of-type(n+2){background:var(--green-tint);}
+.tk-toc.tk-tcards .tk-pn{display:flex!important;align-items:center!important;gap:12px!important;padding:12px 14px!important;border:0!important;background:#7f7f7f;}
+.tk-toc.tk-tcards .tk-part:nth-of-type(n+2)>.tk-pn{background:var(--green-mid);}
+.tk-toc.tk-tcards .tk-part:last-of-type>.tk-pn{background:var(--tab-green);}
+.tk-toc.tk-tcards .tk-pn>span{width:auto!important;font-size:36px!important;font-weight:700!important;line-height:1;color:#fff!important;font-family:var(--font-arial);}
+.tk-toc.tk-tcards .tk-pn>b{font-size:16px!important;line-height:1.3;color:#fff!important;}
+.tk-toc.tk-tcards .tk-part>ol{margin:0!important;padding:10px 14px!important;flex:1 1 auto;}
+.tk-toc.tk-tcards .tk-part>ol>li{display:flex!important;align-items:baseline;gap:8px;padding:9px 0!important;font-size:14px!important;border-bottom:var(--hairline) solid var(--line);}
+.tk-toc.tk-tcards .tk-part>ol>li>i{width:auto!important;flex:none;font-weight:700!important;color:var(--tab-green)!important;font-family:var(--font-arial);}
+.tk-toc.tk-tcards .tk-part>ol>li>em{flex:1 1 auto;font-weight:700!important;}
+.tk-toc.tk-tcards .tk-part>ol>li>u{flex:none;}
+.tk-toc.tk-tcards .tk-tarr{flex:0 0 28px;align-self:center;display:block;height:46%;margin:0 6px;background:#bfbfbf;clip-path:polygon(0 0,100% 50%,0 100%);}
+
+/* v5.3 SlideForge 목차 — 묶음별 전체 높이 열 */
+.tk-toc.tk-sftoc{display:flex!important;flex-direction:column!important;justify-content:flex-start!important;gap:14px!important;padding:64px 30px 34px!important;}
+.tk-sfstory{flex:none;margin:0;font-size:15.5px;line-height:1.45;font-weight:700;color:var(--lead-blue);text-indent:-16px;padding-left:16px;}
+.tk-sfstory::before{content:"✓ ";}
+.tk-sfcols{flex:1 1 auto;min-height:0;display:flex;align-items:stretch;}
+.tk-sfcol{display:flex;flex-direction:column;min-width:0;background:var(--gray-tint);}
+.tk-sfcol.tk-sfc1,.tk-sfcol.tk-sfc2{background:var(--green-tint);}
+.tk-sfh{flex:none;display:flex;align-items:center;gap:14px;min-height:76px;padding:10px 16px;background:#7f7f7f;color:#fff;}
+.tk-sfc1>.tk-sfh{background:var(--green-mid);} .tk-sflast>.tk-sfh{background:var(--tab-green);}
+.tk-sfh>span{flex:none;font-family:var(--font-arial);font-size:44px;font-weight:700;line-height:1;}
+.tk-sfh>b{font-size:17px;line-height:1.3;}
+.tk-sfb{flex:1 1 auto;padding:16px 16px 12px;}
+.tk-sftag{display:table;margin:0 0 8px;padding:2px 8px;font-style:normal;font-size:12px;font-weight:700;color:#fff;background:var(--green-mid);}
+.tk-sftag.tk-tg-p{background:var(--red-tint);color:var(--red-ink);} .tk-sftag.tk-tg-x{background:var(--tab-green);}
+.tk-sfb>ol{margin:0;padding:0;list-style:none;}
+.tk-sfb>ol>li{display:flex;align-items:baseline;gap:7px;padding:8px 0;border-bottom:1px solid #bfbfbf;font-size:15px;}
+.tk-sfb>ol>li>i{flex:none;font-style:normal;font-family:var(--font-arial);font-weight:700;color:var(--green-mid);}
+.tk-sfc0 .tk-sfb>ol>li>i{color:#595959;}
+.tk-sfb>ol>li>em{flex:1 1 auto;font-style:normal;font-weight:700;color:var(--ink);line-height:1.35;}
+.tk-sfb>ol>li>u{flex:none;text-decoration:none;font-family:var(--font-arial);font-size:13px;font-weight:700;color:#595959;}
+.tk-sfdesc{margin:10px 0 0;font-size:13px;line-height:1.5;color:var(--ink-label);}
+.tk-sfarr{flex:0 0 52px;display:flex;align-items:center;justify-content:center;}
+.tk-sfsh{display:block;width:16px;height:10px;background:#bfbfbf;}
+.tk-sfhd{display:block;width:14px;height:22px;background:#bfbfbf;clip-path:polygon(0 0,100% 50%,0 100%);}
