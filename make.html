@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TK 장표 변환기 v6.8 — SlideForge 목차 + 슬라이드별 '다른 안' + 화면 그대로 PPT(오프라인)</title>
+<title>TK 장표 변환기 v6.9 — SlideForge 목차 + 슬라이드별 '다른 안' + 화면 그대로 PPT(오프라인)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" media="print" onload="this.media='all'">
 <!-- PptxGenJS 3.12.0 (MIT) 내장: 인터넷 없이 PPT 내보내기 -->
 <script>
@@ -970,10 +970,17 @@
 </style>
 </head>
 <body data-theme="tk_official">
+<noscript><div style="background:#B91C1C;color:#fff;padding:14px 18px;font:700 15px sans-serif;">이 화면에서는 프로그램(자바스크립트)이 실행되지 않습니다. make.html을 PC에 저장한 뒤 크롬·엣지로 직접 여십시오(드라이브·메신저·앱 미리보기에서는 동작하지 않음).</div></noscript>
+<div id="tkBootErr" style="display:none;background:#B91C1C;color:#fff;padding:12px 18px;font:700 14px sans-serif;"></div>
+<script>
+window.addEventListener('error', function (e) { var b = document.getElementById('tkBootErr'); if (b) { b.style.display = 'block'; b.textContent = '변환기 오류: ' + (e.message || e) + ' — 이 문구를 그대로 알려 주십시오.'; } });
+setTimeout(function () { if (!document.querySelector('#out article')) { var b = document.getElementById('tkBootErr'); if (b && b.style.display !== 'block') { b.style.display = 'block'; b.textContent = '장표가 그려지지 않았습니다. 미리보기 창이면 make.html을 PC에 저장한 뒤 크롬·엣지로 직접 여십시오.'; } } }, 4000);
+</script>
+
 
 <header class="topbar">
   <div class="brand-wrap">
-    <span class="brand-badge">TK SLIDES v6.8</span>
+    <span class="brand-badge">TK SLIDES v6.9</span>
     <span class="brand-title">SlideForge 파이프라인 목차 + 슬라이드별 '다른 안' + 고밀도 장표 변환기</span>
   </div>
   <div class="toolbar">
@@ -990,8 +997,6 @@
     <button id="btnAudit" class="audit-pill good" type="button">✓ 무결성·충전율 100점</button>
     <button id="btnMake" class="btn btn-pri" type="button">장표 만들기</button>
     <button id="btnExportPptx" class="btn btn-acc" type="button">PPT 내보내기 (.pptx)</button>
-    <button id="btnDownloadConverter" class="btn" type="button">변환기(make.html) 다운로드</button>
-    <button id="btnDownloadSkill" class="btn" type="button">스킬(SKILL.md) 다운로드</button>
     <button id="btnClear" class="btn" type="button">지우기</button>
   </div>
 </header>
@@ -3988,12 +3993,6 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   $('btnExportPptx').addEventListener('click', exportDeckToPPTX);
-  $('btnDownloadConverter').addEventListener('click', () => {
-    downloadFileBlob(document.documentElement.outerHTML, 'make.html', 'text/html;charset=utf-8');
-  });
-  $('btnDownloadSkill').addEventListener('click', () => {
-    downloadFileBlob(SKILL_MD_TEXT, 'SKILL.md', 'text/markdown;charset=utf-8');
-  });
 
   $('btnAudit').addEventListener('click', () => {
     const modal = $('auditModal');
