@@ -1,6 +1,6 @@
 # tk-slides — TK 디자인시스템 HTML 장표 키트
 
-> **현재 정본: v6.9 ('26.11.03)** — `make.html` 한 파일로(인터넷 없이도 슬라이드·PPT 생성, PptxGenJS 3.12.0 내장) 장표기획 원고 → TK 덱 → PPTX(29.7×21cm).
+> **현재 정본: v6.10 ('26.11.03)** — `make.html` 한 파일로(인터넷 없이도 슬라이드·PPT 생성, PptxGenJS 3.12.0 내장) 장표기획 원고 → TK 덱 → PPTX(29.7×21cm).
 > 기준점·남은 결함·다음 순서: [docs/v6.4-기준점-1103.md](docs/v6.4-기준점-1103.md) · 설계 설명: [docs/CLAUDE_HANDOFF_v6_4.md](docs/CLAUDE_HANDOFF_v6_4.md) · 장표기획 스킬 v6.4: [SKILL.md](SKILL.md)
 > 옛 판 v5.4는 `make_v5.4.html`(+ tk-slides.js/css)로 보관.
 
@@ -10,7 +10,7 @@
 ## 파일
 | 파일 | 하는 일 |
 | --- | --- |
-| make.html | **원고 변환기 v6.9** — 단일 파일. SlideForge 목차(7장 이내 1열·8장 이상 2열), 정수 번호(`1.` / `1-1.`), 장마다 「다른 안 ↻」·직접 선택, PPTX A4 |
+| make.html | **원고 변환기 v6.10** — 단일 파일. SlideForge 목차(7장 이내 1열·8장 이상 2열), 정수 번호(`1.` / `1-1.`), 장마다 「다른 안 ↻」·직접 선택, PPTX A4 |
 | make_v5.4.html | 옛 변환기 v5.4 — 장표기획 원고(또는 장표생성 HTML)를 붙여 넣으면 TK 덱을 그리고 PPT로 내보냄. 주소: https://captain-lee999.github.io/TK-Slides/make.html (GitHub Pages 켠 뒤) |
 | tk-slides.css | 토큰(색·글꼴·간격) + 부품 15종 디자인 |
 | tk-slides.js | 엠블럼·쪽번호·표지 이미지, 막대·워터폴·일정표 그리기, 넘치면 글자 자동 축소(12→9.5px), 화면 배율, **PPT 내보내기 단추**(편집 가능한 .pptx, A4 가로) |
