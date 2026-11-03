@@ -267,6 +267,8 @@
   }
 
   /* Official 전사PPT양식 Slide Canvas (29.7cm x 21cm A4 Landscape Ratio = 1.414 : 1 -> 980px x 692px) */
+  body.pptx-capture #out article.tk-slide { width: 980px !important; max-width: 980px !important; min-width: 980px !important; height: 693px !important; min-height: 693px !important; overflow: hidden !important; box-shadow: none !important; border-color: transparent !important; border-radius: 0 !important; }
+  body.pptx-capture .no-print { display: none !important; }
   .tk-slide {
     flex-shrink: 0;
     --sl-font-body: 11.4px;
@@ -3616,7 +3618,7 @@ function renderDeck(focusSlideIndex = null) {
 }
 
 // Official 전사PPT양식 + SlideForge TOC Native PPTX Export (29.7cm x 21.0cm = 11.693" x 8.268")
-function exportDeckToPPTX() {
+function exportDeckToPPTXCards() { // v6.4 옛 방식(칸 카드만) — 쓰지 않음
   if (typeof PptxGenJS === 'undefined') return;
   const deck = currentDeck || parseManuscript($('input').value);
   const totalSlides = deck.slides.length;
@@ -3762,6 +3764,180 @@ function exportDeckToPPTX() {
   });
 
   pptx.writeFile({ fileName: 'TK_Slides_v6_4_전사PPT양식.pptx' });
+}
+
+// v6.5 PPT 내보내기: 화면에 그린 장(article.tk-slide)을 그대로 편집 가능한 도형·글상자로 옮김 (v5.4 tk-slides.js 방식 이식)
+//  · 상자 = 배경·테두리 → 사각형/타원, 글 = 실제 글자 위치에 글상자(굵기·색·크기 유지), 이미지 = 그대로, SVG = 도형(복잡하면 그림)
+//  · 「다른 안」으로 바꾼 도식, 비율 강조, 표, 2×2 등 화면 모양 그대로. 화면용 단추·충전율 표시는 제외(.no-print)
+const PPT_W_PX = 980, PPT_H_PX = Math.round(980 * 8.268 / 11.693);
+function pxHex(c) {
+  const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/.exec(c || '');
+  if (!m) return null;
+  if (m[4] !== undefined && +m[4] < 0.05) return null;
+  return [m[1], m[2], m[3]].map(v => { const h = Math.round(+v).toString(16); return h.length < 2 ? '0' + h : h; }).join('').toUpperCase();
+}
+const pxNum = v => parseFloat(v) || 0;
+const PPT_INLINE = { B: 1, STRONG: 1, EM: 1, I: 1, SPAN: 1, SMALL: 1, A: 1, BR: 1, SUP: 1, SUB: 1, U: 1, MARK: 1 };
+function pptPseudo(e, which) {
+  const pcs = getComputedStyle(e, which), c = pcs.content;
+  if (!c || c === 'none' || c === 'normal' || pcs.display === 'none') return '';
+  const q = /^"(.*)"$/.exec(c);
+  return q ? q[1].replace(/\\"/g, '"') : '';
+}
+function pptRuns(node, PT) {
+  const runs = [], nodes = [];
+  const style = e => { const cs = getComputedStyle(e); return { color: pxHex(cs.color) || '000000', bold: (+cs.fontWeight || 400) >= 600, fontSize: Math.max(6, Math.round(pxNum(cs.fontSize) * PT * 2) / 2), fontFace: 'Noto Sans KR', underline: /underline/.test(cs.textDecorationLine) ? { style: 'sng' } : undefined }; };
+  const pre = pptPseudo(node, '::before');
+  if (pre) { const o = style(node); o.color = pxHex(getComputedStyle(node, '::before').color) || o.color; runs.push({ text: pre + (/\s$/.test(pre) ? '' : ' '), options: o }); }
+  (function walk(n) {
+    n.childNodes.forEach(c => {
+      if (c.nodeType === 3) {
+        const tx = c.nodeValue.replace(/\s+/g, ' ');
+        if (tx.trim() || (runs.length && tx === ' ')) { const o = style(n); const bg = pxHex(getComputedStyle(n).backgroundColor); if (n !== node && bg && bg !== 'FFFFFF') o.highlight = bg; runs.push({ text: tx, options: o }); if (tx.trim()) nodes.push(c); }
+      } else if (c.nodeType === 1 && PPT_INLINE[c.tagName] && getComputedStyle(c).display.indexOf('inline') === 0 && !c.classList.contains('no-print')) {
+        if (c.tagName === 'BR') runs.push({ text: '', options: { breakLine: true } }); else walk(c);
+      }
+    });
+  })(node);
+  if (runs.length) { runs[0].text = runs[0].text.replace(/^\s+/, ''); runs[runs.length - 1].text = runs[runs.length - 1].text.replace(/\s+$/, ''); }
+  const out = runs.filter(r => r.text !== '' || (r.options && r.options.breakLine));
+  out.nodes = nodes;
+  return out;
+}
+function pptTextRect(nodes) {
+  let u = null; const rg = document.createRange();
+  nodes.forEach(n => { rg.selectNodeContents(n); Array.from(rg.getClientRects()).forEach(q => {
+    if (q.width < 0.5 && q.height < 0.5) return;
+    if (!u) u = { left: q.left, top: q.top, right: q.right, bottom: q.bottom };
+    else { u.left = Math.min(u.left, q.left); u.top = Math.min(u.top, q.top); u.right = Math.max(u.right, q.right); u.bottom = Math.max(u.bottom, q.bottom); }
+  }); });
+  return u;
+}
+// 다각형·경로가 있는 SVG(레이더·버블 등)는 그림으로: 계산된 색을 속성으로 굳힌 뒤 PNG로
+function pptSvgToPng(svgEl) {
+  return new Promise(res => {
+    try {
+      const r = svgEl.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return res(null);
+      const cl = svgEl.cloneNode(true), src = svgEl.querySelectorAll('*'), dst = cl.querySelectorAll('*');
+      src.forEach((g, i) => { const cs = getComputedStyle(g); const d = dst[i]; ['fill', 'stroke', 'stroke-width', 'font-size', 'font-weight', 'opacity', 'fill-opacity', 'stroke-opacity'].forEach(k => { const v = cs.getPropertyValue(k); if (v) d.setAttribute(k, v); }); d.setAttribute('font-family', 'Noto Sans KR, Pretendard, sans-serif'); });
+      cl.setAttribute('width', r.width); cl.setAttribute('height', r.height); cl.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      const img = new Image(), sc = 3;
+      img.onload = () => { const cv = document.createElement('canvas'); cv.width = r.width * sc; cv.height = r.height * sc; const cx = cv.getContext('2d'); cx.scale(sc, sc); cx.drawImage(img, 0, 0, r.width, r.height); try { res(cv.toDataURL('image/png')); } catch (e) { res(null); } };
+      img.onerror = () => res(null);
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(cl));
+    } catch (e) { res(null); }
+  });
+}
+async function exportDeckToPPTX() {
+  if (typeof PptxGenJS === 'undefined') { alert('PPT 변환 도구(PptxGenJS)를 불러오지 못했습니다. 인터넷 연결을 확인해 주십시오.'); return; }
+  const outEl = $('out');
+  if (!outEl.querySelector('article.tk-slide')) renderDeck();
+  const btn = $('btnExportPptx'), oldTxt = btn.textContent; btn.disabled = true; btn.textContent = 'PPT 만드는 중…';
+  document.body.classList.add('pptx-capture');
+  try {
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const pptx = new PptxGenJS();
+    pptx.defineLayout({ name: 'TK_A4', width: 11.693, height: 8.268 });
+    pptx.layout = 'TK_A4';
+    pptx.title = (currentDeck && currentDeck.cover && currentDeck.cover.title) || 'TK 장표';
+    const S = pptx.ShapeType;
+    const arts = Array.from(outEl.querySelectorAll('article.tk-slide'));
+    const svgPng = new Map();
+    for (const sv of outEl.querySelectorAll('article.tk-slide svg')) if (sv.querySelector('polygon, polyline, path, ellipse')) svgPng.set(sv, await pptSvgToPng(sv));
+    for (const sl of arts) {
+      const slide = pptx.addSlide();
+      const B = sl.getBoundingClientRect();
+      const kx = 11.693 / B.width, ky = 8.268 / B.height, PT = (11.693 * 72 / PPT_W_PX) * (PPT_W_PX / sl.offsetWidth);
+      const box = r => ({ x: (r.left - B.left) * kx, y: (r.top - B.top) * ky, w: Math.max(0.01, r.width * kx), h: Math.max(0.01, r.height * ky) });
+      const inside = r => r.width > 0.5 && r.height > 0.2 && r.right > B.left && r.left < B.right && r.bottom > B.top && r.top < B.bottom;
+      const shape = (kind, b, opt) => slide.addShape(kind === 'ellipse' ? S.ellipse : S.rect, Object.assign({}, b, opt));
+      const svg = svEl => {
+        const png = svgPng.get(svEl);
+        const sr = svEl.getBoundingClientRect();
+        if (png) { if (inside(sr)) slide.addImage(Object.assign(box(sr), { data: png })); return; }
+        svEl.querySelectorAll('rect, line, text, circle').forEach(g => {
+          const r = g.getBoundingClientRect(), cs = getComputedStyle(g);
+          if (g.tagName === 'line') {
+            const lb = box(r);
+            slide.addShape(S.line, { x: lb.x, y: lb.y, w: Math.max(0.001, lb.w), h: Math.max(0.001, lb.h), line: { color: pxHex(cs.stroke) || 'A6A6A6', width: Math.max(0.5, pxNum(cs.strokeWidth) || 1) } });
+            return;
+          }
+          if (!inside(r)) return;
+          const b = box(r);
+          if (g.tagName === 'rect') shape('rect', b, { fill: { color: pxHex(cs.fill) || 'BFBFBF' }, line: { type: 'none' } });
+          else if (g.tagName === 'circle') shape('ellipse', b, { fill: pxHex(cs.fill) ? { color: pxHex(cs.fill) } : { type: 'none' }, line: { color: pxHex(cs.stroke) || 'A6A6A6', width: pxNum(cs.strokeWidth) || 1 } });
+          else slide.addText(g.textContent, { x: b.x - 0.08, y: b.y - 0.02, w: b.w + 0.16, h: b.h + 0.04, margin: 0, align: 'center', valign: 'middle', wrap: false, fontFace: 'Noto Sans KR', fontSize: Math.max(6, pxNum(cs.fontSize) * PT), bold: (+cs.fontWeight || 400) >= 600, color: pxHex(cs.fill) || '000000' });
+        });
+      };
+      (function visit(e) {
+        if (e.nodeType !== 1) return;
+        if (e.classList.contains('no-print') || /^(BUTTON|SELECT|INPUT|TEXTAREA|SCRIPT|STYLE)$/.test(e.tagName)) return;
+        const cs = getComputedStyle(e);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) return;
+        if (e.tagName.toLowerCase() === 'svg') return svg(e);
+        const r = e.getBoundingClientRect();
+        if (e.tagName === 'IMG') {
+          if (inside(r) && e.src) {
+            const o = box(r);
+            if (e.naturalWidth && cs.objectFit !== 'cover' && cs.objectFit !== 'fill') { const ar = e.naturalWidth / e.naturalHeight, bw = o.w, bh = o.h; if (bw / bh > ar) { o.w = bh * ar; o.x += (bw - o.w) / 2; } else { o.h = bw / ar; o.y += (bh - o.h) / 2; } }
+            let data = /^data:image\/(png|jpe?g|gif)/.test(e.src) ? e.src : null;
+            if (!data) { try { const cv = document.createElement('canvas'); cv.width = e.naturalWidth; cv.height = e.naturalHeight; cv.getContext('2d').drawImage(e, 0, 0); data = cv.toDataURL('image/png'); } catch (x) { data = null; } }
+            if (data) slide.addImage(Object.assign(o, { data }));
+          }
+          return;
+        }
+        if (inside(r) || e === sl) {
+          const b = box(r), fill = pxHex(cs.backgroundColor);
+          const rad = cs.borderTopLeftRadius;
+          const ell = /%/.test(rad) ? parseFloat(rad) >= 45 : pxNum(rad) >= Math.min(r.width, r.height) * 0.45 && r.width > 4;
+          const bw = ['Top', 'Right', 'Bottom', 'Left'].map(sd => cs['border' + sd + 'Style'] !== 'none' ? pxNum(cs['border' + sd + 'Width']) : 0);
+          const bc = ['Top', 'Right', 'Bottom', 'Left'].map(sd => pxHex(cs['border' + sd + 'Color']));
+          const uniform = bw[0] > 0 && bw.every(v => v === bw[0]) && bc.every(v => v === bc[0]) && bc[0];
+          if (e !== sl && (fill || uniform)) shape(ell ? 'ellipse' : 'rect', b, { fill: fill ? { color: fill } : { type: 'none' }, line: uniform ? { color: bc[0], width: Math.max(0.5, bw[0] * PT) } : { type: 'none' } });
+          if (!uniform && e !== sl) {
+            const t = b.y, l = b.x;
+            if (bw[0] && bc[0]) shape('rect', { x: l, y: t, w: b.w, h: bw[0] * ky }, { fill: { color: bc[0] }, line: { type: 'none' } });
+            if (bw[2] && bc[2]) shape('rect', { x: l, y: t + b.h - bw[2] * ky, w: b.w, h: bw[2] * ky }, { fill: { color: bc[2] }, line: { type: 'none' } });
+            if (bw[3] && bc[3]) shape('rect', { x: l, y: t, w: bw[3] * kx, h: b.h }, { fill: { color: bc[3] }, line: { type: 'none' } });
+            if (bw[1] && bc[1]) shape('rect', { x: l + b.w - bw[1] * kx, y: t, w: bw[1] * kx, h: b.h }, { fill: { color: bc[1] }, line: { type: 'none' } });
+          }
+          const runs = pptRuns(e, PT);
+          if (runs.length) {
+            const ctr = cs.textAlign === 'center' || (cs.display.indexOf('flex') >= 0 && (cs.flexDirection.indexOf('column') === 0 ? cs.alignItems === 'center' : cs.justifyContent === 'center'));
+            const right = cs.textAlign === 'right' || (cs.display.indexOf('flex') >= 0 && cs.flexDirection.indexOf('column') !== 0 && cs.justifyContent === 'flex-end');
+            const lh = pxNum(cs.lineHeight);
+            const o2 = { margin: 0, valign: 'top', align: ctr ? 'center' : right ? 'right' : 'left', fit: 'none', wrap: true, paraSpaceBefore: 0, paraSpaceAfter: 0 };
+            if (lh) o2.lineSpacing = lh * PT;
+            const u = pptTextRect(runs.nodes);
+            if (!u) Object.assign(o2, b);
+            else {
+              const w = u.right - u.left, slack = Math.max(6, w * 0.06);
+              let x = u.left - B.left; const wid = w + slack;
+              if (ctr) x -= slack / 2; else if (right) x -= slack;
+              const lineFix = lh && pxNum(cs.fontSize) ? Math.max(0, (lh - pxNum(cs.fontSize) * 1.2) / 2) : 0;
+              Object.assign(o2, { x: x * kx, y: (u.top - B.top - lineFix) * ky, w: wid * kx, h: Math.max(0.12, (u.bottom - u.top + lineFix * 2) * ky) });
+              if ((u.bottom - u.top) < (lh || pxNum(cs.fontSize) * 1.4) * 1.5) {
+                if ((e.textContent || '').trim().length <= 6) { o2.wrap = false; o2.w = Math.max(o2.w, w * kx * 1.25); }
+                else if (pxNum(cs.fontSize) >= 14 && !ctr && !right) { o2.wrap = false; o2.w = Math.max(o2.w * 1.15, (B.right - u.left) * kx - 0.3); } // 제목·리드: PC 글꼴이 넓어도 줄바꿈 없이
+                else if (!ctr && !right) { const edge = r.right - pxNum(cs.paddingRight) - B.left; o2.w = Math.max(o2.w, (edge - (u.left - B.left)) * kx); }
+                else o2.wrap = false;
+              }
+            }
+            slide.addText(runs, o2);
+          }
+        }
+        Array.from(e.children).forEach(c => { if (PPT_INLINE[c.tagName] && getComputedStyle(c).display.indexOf('inline') === 0) return; visit(c); });
+      })(sl);
+    }
+    const nm = String(pptx.title).replace(/[\\/:*?"<>|]/g, '').slice(0, 60) || 'TK 장표';
+    await pptx.writeFile({ fileName: `${nm}.pptx` });
+  } catch (err) {
+    console.error(err); alert('PPT 변환 중 오류: ' + err.message);
+  } finally {
+    document.body.classList.remove('pptx-capture');
+    btn.disabled = false; btn.textContent = oldTxt;
+  }
 }
 
 function downloadFileBlob(content, filename, mimeType) {
