@@ -23,7 +23,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
     const name = f.replace(/\.md$/, ''), md = fs.readFileSync(path.join(ROOT, 'tests/regress', f), 'utf8');
     const p = await b.newPage({ viewport: { width: 1400, height: 900 } });
     p.on('pageerror', e => console.log('  [make 오류]', name, e.message));
-    await p.goto(base + 'make.html'); await p.fill('#src', md); await p.click('#go');
+    await p.goto(base + 'make_v5.4.html'); await p.fill('#src', md); await p.click('#go');
     await p.waitForFunction(() => document.getElementById('view').srcdoc.length > 100);
     const html = await p.$eval('#view', v => v.srcdoc), alts = await p.$eval('#forms', x => x.innerText);
     await p.close();

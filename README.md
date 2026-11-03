@@ -1,4 +1,8 @@
-# tk-slides — TK 디자인시스템 HTML 장표 키트 v1
+# tk-slides — TK 디자인시스템 HTML 장표 키트
+
+> **현재 정본: v6.4 ('26.11.03)** — `make.html` 한 파일(오프라인 완결)로 장표기획 원고 → TK 덱 → PPTX(29.7×21cm).
+> 기준점·남은 결함·다음 순서: [docs/v6.4-기준점-1103.md](docs/v6.4-기준점-1103.md) · 설계 설명: [docs/CLAUDE_HANDOFF_v6_4.md](docs/CLAUDE_HANDOFF_v6_4.md) · 장표기획 스킬 v6.4: [SKILL.md](SKILL.md)
+> 옛 판 v5.4는 `make_v5.4.html`(+ tk-slides.js/css)로 보관.
 
 농심태경 TK 디자인시스템 v4.2(A4 가로 842×595, 색 역할·리드메시지·제목선·엠블럼)를 HTML 장표로 옮긴 키트.
 제미나이 장표생성 스킬(ppt-slide-builder)이 이 키트의 부품 클래스로 HTML을 쓰고, 화면에서는 키트가 모양을 그린다.
@@ -6,7 +10,8 @@
 ## 파일
 | 파일 | 하는 일 |
 | --- | --- |
-| make.html | **원고 변환기** — 장표기획 원고(또는 장표생성 HTML)를 붙여 넣으면 TK 덱을 그리고 PPT로 내보냄. 주소: https://captain-lee999.github.io/TK-Slides/make.html (GitHub Pages 켠 뒤) |
+| make.html | **원고 변환기 v6.4** — 단일 파일. SlideForge 목차(7장 이내 1열·8장 이상 2열), 정수 번호(`1.` / `1-1.`), 장마다 「다른 안 ↻」·직접 선택, PPTX A4 |
+| make_v5.4.html | 옛 변환기 v5.4 — 장표기획 원고(또는 장표생성 HTML)를 붙여 넣으면 TK 덱을 그리고 PPT로 내보냄. 주소: https://captain-lee999.github.io/TK-Slides/make.html (GitHub Pages 켠 뒤) |
 | tk-slides.css | 토큰(색·글꼴·간격) + 부품 15종 디자인 |
 | tk-slides.js | 엠블럼·쪽번호·표지 이미지, 막대·워터폴·일정표 그리기, 넘치면 글자 자동 축소(12→9.5px), 화면 배율, **PPT 내보내기 단추**(편집 가능한 .pptx, A4 가로) |
 | img/ | 베지가든·Qtaste·BORN TASTE 엠블럼, 농심태경 워드마크, 표지 나무 |
@@ -16,7 +21,9 @@
 | tests/canvas-test-2-kit.html | 이 키트가 링크로 읽히는지 시험 |
 | tests/regress/*.md | 회귀 원고 6개(통찰력 판매 2종 · 팀 AI · 전략 의사결정 · 가상 시험 2종) |
 | tools/score.js | 채점기 v2 — 평가표 자동 항목(치명·중대·경미): 내용 누락(원고 대조)·넘침·겹침·화면 밖·속 빈 상자·세로 채움·글자 크기·덱 안 크기 통일·형식 반복·사실 띠 비중 등 |
-| tools/regress.js | 회귀 채점 — `node tools/regress.js --save base` 뒤 고치고 `--cmp base --shot`으로 전후 비교·장별 그림(out/) |
+| tools/check-v64.js | v6.4 점검 — 회귀 원고·프리셋을 그려 빈 칸·화면 밖·실증 띠·원고 보존율·PPTX 크기를 잼(`--shot --pptx`) |
+| SKILL.md | 장표기획 스킬 v6.4 정본(사본 docs/ppt-slide-planner-v6.4.SKILL.md, 이전 v9 사본 유지) |
+| tools/regress.js | 회귀 채점(v5.4 기준) — `node tools/regress.js --save base` 뒤 고치고 `--cmp base --shot`으로 전후 비교·장별 그림(out/) |
 | docs/실행덱-분석-1102.md | 실행 덱 분석(평가표 7장 절차)과 개선 목록 |
 
 ## v5.1 표현 풀 추가 (원고 재료로 자동 선택, 화면·PPT 모두)
