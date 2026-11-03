@@ -22,7 +22,7 @@ function frags(md) {
   if (!arg('--only')) for (const v of await p.$$eval('#deckPreset option', o => o.map(x => x.value).filter(Boolean))) runs.push({ name: 'preset-' + v, preset: v });
   for (const f of fs.readdirSync(path.join(ROOT, 'tests/regress')).filter(f => /\.md$/.test(f) && (!arg('--only') || f.includes(arg('--only')))).sort())
     runs.push({ name: f.replace(/\.md$/, ''), md: fs.readFileSync(path.join(ROOT, 'tests/regress', f), 'utf8') });
-  const tot = { slides: 0, outside: 0, dash: 0, band: 0, fr: 0, kept: 0 };
+  const tot = { slides: 0, outside: 0, dash: 0, band: 0, run: 0, fr: 0, kept: 0 };
   for (const r of runs) {
     if (r.preset) { await p.selectOption('#deckPreset', r.preset); await p.waitForTimeout(300); } else await p.fill('#input', r.md);
     await p.click('#btnMake'); await p.waitForTimeout(1500);
@@ -33,6 +33,7 @@ function frags(md) {
         outside: arts.map(a => { const R = a.getBoundingClientRect(); return [...a.querySelectorAll('*')].filter(e => { const q = e.getBoundingClientRect(); return q.width && (q.right > R.right + 1 || q.bottom > R.bottom + 1); }).length; }),
         dash: arts.map(a => [...a.querySelectorAll('*')].filter(e => !e.children.length && (e.textContent || '').trim() === '-').length),
         band: arts.filter(a => a.querySelector('.sl-fact-band')).length,
+        bandRun: arts.filter((a, i) => i > 0 && a.querySelector('.sl-fact-band') && arts[i - 1].querySelector('.sl-fact-band')).length,
         alts: arts.map(a => { const s = a.querySelector('select'); return s ? s.options.length : 0; }),
         text: arts.map(a => a.innerText).join('\n'),
       };
@@ -40,8 +41,8 @@ function frags(md) {
     let kept = '';
     if (r.md) { const fr = frags(r.md), t = norm(m.text), k = fr.filter(x => t.includes(x)).length; kept = ` · 원고 조각 ${k}/${fr.length}`; tot.fr += fr.length; tot.kept += k; }
     const sum = a => a.reduce((x, y) => x + y, 0);
-    tot.slides += m.n; tot.outside += sum(m.outside); tot.dash += sum(m.dash); tot.band += m.band;
-    console.log(`${r.name}: ${m.n}장 · 밖 ${sum(m.outside)} · 빈 칸 ${sum(m.dash)}(${m.dash.join(',')}) · 실증 띠 ${m.band}장 · 다른 안 ${m.alts.join(',')}${kept}`);
+    tot.slides += m.n; tot.outside += sum(m.outside); tot.dash += sum(m.dash); tot.band += m.band; tot.run += m.bandRun;
+    console.log(`${r.name}: ${m.n}장 · 밖 ${sum(m.outside)} · 빈 칸 ${sum(m.dash)}(${m.dash.join(',')}) · 실증 띠 ${m.band}장(연속 ${m.bandRun}) · 다른 안 ${m.alts.join(',')}${kept}`);
     if (process.argv.includes('--shot')) {
       const arts = await p.$$('#out article.tk-slide');
       for (let i = 0; i < arts.length; i++) await arts[i].screenshot({ path: path.join(OUT, `${r.name}-${String(i + 1).padStart(2, '0')}.png`) });
@@ -53,6 +54,6 @@ function frags(md) {
       console.log(`  PPTX ${(+s[1] / 360000).toFixed(1)}×${(+s[2] / 360000).toFixed(1)}cm · 장 ${(execSync(`unzip -l "${f}"`).toString().match(/ppt\/slides\/slide\d+\.xml/g) || []).length}`);
     }
   }
-  console.log(`\n합계 — ${tot.slides}장 · 밖 ${tot.outside} · 빈 칸 ${tot.dash} · 실증 띠 ${tot.band}장 · 원고 조각 ${tot.kept}/${tot.fr} (${(100 * tot.kept / Math.max(1, tot.fr)).toFixed(1)}%)`);
+  console.log(`\n합계 — ${tot.slides}장 · 밖 ${tot.outside} · 빈 칸 ${tot.dash} · 실증 띠 ${tot.band}장(연속 ${tot.run}) · 원고 조각 ${tot.kept}/${tot.fr} (${(100 * tot.kept / Math.max(1, tot.fr)).toFixed(1)}%)`);
   await b.close();
 })();
