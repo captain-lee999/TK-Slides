@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TK 장표 변환기 v6.5 — SlideForge 파이프라인 목차 + 슬라이드별 '다른 안' + 고밀도 무여백 에디션</title>
+<title>TK 장표 변환기 v6.8 — SlideForge 목차 + 슬라이드별 '다른 안' + 화면 그대로 PPT(오프라인)</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" media="print" onload="this.media='all'">
 <!-- PptxGenJS 3.12.0 (MIT) 내장: 인터넷 없이 PPT 내보내기 -->
 <script>
@@ -973,7 +973,7 @@
 
 <header class="topbar">
   <div class="brand-wrap">
-    <span class="brand-badge">TK SLIDES v6.5</span>
+    <span class="brand-badge">TK SLIDES v6.8</span>
     <span class="brand-title">SlideForge 파이프라인 목차 + 슬라이드별 '다른 안' + 고밀도 장표 변환기</span>
   </div>
   <div class="toolbar">
@@ -3763,7 +3763,7 @@ function exportDeckToPPTXCards() { // v6.4 옛 방식(칸 카드만) — 쓰지 
   pptx.writeFile({ fileName: 'TK_Slides_v6_4_전사PPT양식.pptx' });
 }
 
-// v6.5 PPT 내보내기: 화면에 그린 장(article.tk-slide)을 그대로 편집 가능한 도형·글상자로 옮김 (v5.4 tk-slides.js 방식 이식)
+// v6.6 PPT 내보내기: 화면에 그린 장(article.tk-slide)을 그대로 편집 가능한 도형·글상자로 옮김 (v5.4 tk-slides.js 방식 이식)
 //  · 상자 = 배경·테두리 → 사각형/타원, 글 = 실제 글자 위치에 글상자(굵기·색·크기 유지), 이미지 = 그대로, SVG = 도형(복잡하면 그림)
 //  · 「다른 안」으로 바꾼 도식, 비율 강조, 표, 2×2 등 화면 모양 그대로. 화면용 단추·충전율 표시는 제외(.no-print)
 const PPT_W_PX = 980, PPT_H_PX = Math.round(980 * 8.268 / 11.693);
