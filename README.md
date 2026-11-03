@@ -1,6 +1,6 @@
 # tk-slides — TK 디자인시스템 HTML 장표 키트
 
-> **현재 정본: v6.4 ('26.11.03)** — `make.html` 한 파일(오프라인 완결)로 장표기획 원고 → TK 덱 → PPTX(29.7×21cm).
+> **현재 정본: v6.5 ('26.11.03)** — `make.html` 한 파일로(인터넷 없이도 슬라이드·PPT 생성, PptxGenJS 3.12.0 내장) 장표기획 원고 → TK 덱 → PPTX(29.7×21cm).
 > 기준점·남은 결함·다음 순서: [docs/v6.4-기준점-1103.md](docs/v6.4-기준점-1103.md) · 설계 설명: [docs/CLAUDE_HANDOFF_v6_4.md](docs/CLAUDE_HANDOFF_v6_4.md) · 장표기획 스킬 v6.4: [SKILL.md](SKILL.md)
 > 옛 판 v5.4는 `make_v5.4.html`(+ tk-slides.js/css)로 보관.
 

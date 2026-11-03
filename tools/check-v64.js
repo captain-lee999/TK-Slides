@@ -5,7 +5,7 @@
 const { chromium } = require('playwright'); const fs = require('fs'); const path = require('path'); const { execSync } = require('child_process');
 const ROOT = path.join(__dirname, '..'), OUT = path.join(ROOT, 'out', 'v64'); fs.mkdirSync(OUT, { recursive: true });
 const arg = k => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : null; };
-const LOCAL_PPTX = ['/opt/npm-tools/node_modules/pptxgenjs/dist/pptxgen.bundle.js', path.join(ROOT, 'node_modules/pptxgenjs/dist/pptxgen.bundle.js')].find(f => fs.existsSync(f));
+const LOCAL_PPTX = process.argv.includes('--offline') ? null : ['/opt/npm-tools/node_modules/pptxgenjs/dist/pptxgen.bundle.js', path.join(ROOT, 'node_modules/pptxgenjs/dist/pptxgen.bundle.js')].find(f => fs.existsSync(f));
 const norm = s => s.replace(/[\s·•\-*|/:,.()「」'"✓→]/g, '');
 function frags(md) {
   const out = [];
@@ -47,7 +47,7 @@ function frags(md) {
       const arts = await p.$$('#out article.tk-slide');
       for (let i = 0; i < arts.length; i++) await arts[i].screenshot({ path: path.join(OUT, `${r.name}-${String(i + 1).padStart(2, '0')}.png`) });
     }
-    if (process.argv.includes('--pptx') && LOCAL_PPTX) {
+    if (process.argv.includes('--pptx')) {
       const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 30000 }), p.click('#btnExportPptx')]);
       const f = path.join(OUT, r.name + '.pptx'); await dl.saveAs(f);
       const xml = execSync(`unzip -p "${f}" ppt/presentation.xml`).toString(); const s = xml.match(/sldSz cx="(\d+)" cy="(\d+)"/);
